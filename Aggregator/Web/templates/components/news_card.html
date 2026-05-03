@@ -1,0 +1,108 @@
+{% if news %}
+    {% for item in news %}
+    <article class="card bg-base-100 shadow hover:shadow-lg transition
+                    w-full max-w-7xl mx-auto
+                    h-[110px] sm:h-[180px] md:h-[210px]">
+        <div class="card-body flex flex-row gap-2 md:gap-4 p-0 h-full">
+
+            <div class="w-[90px] h-[90px] sm:w-28 sm:h-full md:w-36 flex-shrink-0 m-2 sm:m-0">
+                {% if item.source and item.source.code == 'TG' %}
+                    {% set img = '/media/' ~ item.image_path %}
+                {% else %}
+                    {% set img = item.image %}
+                {% endif %}
+
+                <img src="{{ img if img and img|lower != 'nan' else '/media/plug.jpg' }}"
+                     class="w-full h-full object-cover rounded-xl sm:rounded-l-2xl"
+                     loading="lazy"
+                     decoding="async"
+                     onerror="this.onerror=null; this.src='/media/plug.jpg';">
+            </div>
+
+            <div class="flex-1 min-w-0 flex flex-col h-full p-2 md:p-4">
+
+                {% set query_parts = [] %}
+                {% for key, val in request.query_params.multi_items() %}
+                    {% set _ = query_parts.append(key ~ '=' ~ val) %}
+                {% endfor %}
+                {% set card_query = query_parts | join('&') %}
+
+
+                <h2 class="card-title text-[11px] sm:text-sm leading-snug break-words
+                           line-clamp-4 sm:line-clamp-2 lg:line-clamp-2">
+                    <a href="/vyatsu.news/post/{{ item.id }}?{{ card_query }}" class="hover:text-gray-500"> <!-- заголовок -->
+                        {{ item.title }}
+                    </a>
+                </h2>
+
+                <p class="hidden sm:[display:-webkit-box] text-[10px] sm:text-xs opacity-80 mt-1 md:mt-2"
+                   style="
+                     -webkit-line-clamp: 3;
+                     -webkit-box-orient: vertical;
+                     overflow: hidden;
+                     line-height: 1.5;
+                     max-height: 4.8em;
+                   ">
+                    {{ item.text }}
+                </p>
+                <div class="mt-auto">
+
+
+                <div class="flex gap-1 sm:flex-wrap md:gap-2 mt-1 overflow-hidden max-h-[32px] sm:max-h-none">  <!-- теги для телефона -->
+                   <div class="flex sm:hidden gap-1 flex-wrap">
+                        {% if item.structures %}
+                            {% set visible_tags = item.structures[:1] %}
+                            {% set remaining_count = item.structures|length - 1 %}
+
+                            {% for ns in visible_tags %}
+                                {% set struct = ns.structure %}
+                                <span class="badge badge-xs text-[8px] border-blue-500 text-blue-600 bg-blue-50 ">
+                                    {{ struct.name[:40] ~ '...' if struct.name|length > 40 else struct.name }}
+                                </span>
+                            {% endfor %}
+
+                            {% if remaining_count > 0 %}
+                                <span class="badge badge-xs text-[8px] border-gray-400 text-gray-500 bg-gray-50  ">
+                                    +{{ remaining_count }}
+                                </span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    <div class="hidden sm:flex gap-1 md:gap-2 flex-wrap">  <!-- теги для планшета -->
+                        {% set visible_tags = item.structures[:2] %}
+                        {% set remaining_count = item.structures|length - 2 %}
+
+                        {% for ns in visible_tags %}
+                            {% set struct = ns.structure %}
+                            {% include "components/structure_badge.html" %}
+                        {% endfor %}
+
+                        {% if remaining_count > 0 %}
+                            <span class="badge badge-xs sm:badge-sm badge-outline border-gray-400 text-gray-500 bg-gray-50 px-1.5 md:px-3 py-0.5">
+                                +{{ remaining_count }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mt-1 md:mt-2">
+                    <span class="text-[9px] sm:text-xs">
+                        {{ item.published_at.strftime('%d.%m.%Y %H:%M') if item.published_at }}
+                    </span>
+                    <span class="badge badge-xs text-[7px] sm:badge-sm sm:text-xs badge-outline badge-neutral">
+                        {{ item.source.name if item.source else 'ВятГУ' }}
+                    </span>
+                </div>
+                </div>
+            </div>
+        </div>
+    </article>
+    {% endfor %}
+{% else %}
+    <div class="flex flex-col items-center justify-center py-20 text-center">
+        <p class="text-lg font-medium text-gray-500">Новости не найдены</p>
+        <p class="text-sm text-gray-400 mt-1">Попробуйте изменить параметры фильтров</p>
+        <a href="/vyatsu.news/" class="btn btn-ghost btn-sm mt-4">Сбросить фильтры</a>
+    </div>
+{% endif %}

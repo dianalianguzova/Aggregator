@@ -1,0 +1,26 @@
+{% set query_parts = [] %}
+{% for key, val in request.query_params.multi_items() %}
+    {% if key != 'page' %}
+        {% set _ = query_parts.append(key ~ '=' ~ val) %}
+    {% endif %}
+{% endfor %}
+{% set base_query = query_parts | join('&') %}
+
+<div class="join">
+    {% if prev_page %}
+    <a href="/vyatsu.news/?page={{ prev_page }}&{{ base_query }}"
+       class="join-item btn btn-sm">&lt;</a>
+    {% endif %}
+
+    {% for p in pages %}
+    <a href="/vyatsu.news/?page={{ p }}&{{ base_query }}"
+       class="join-item btn btn-sm {% if p == page %}btn-active{% endif %}">
+        {{ p }}
+    </a>
+    {% endfor %}
+
+    {% if next_page %}
+    <a href="/vyatsu.news/?page={{ next_page }}&{{ base_query }}"
+       class="join-item btn btn-sm">&gt;</a>
+    {% endif %}
+</div>

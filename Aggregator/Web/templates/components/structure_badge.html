@@ -1,0 +1,28 @@
+{% if struct.type in ['Институт', 'Колледж', 'Совет', 'СНО'] %}
+<span class="inline-flex items-center rounded-full border border-blue-500 text-blue-600 bg-blue-50 px-1 sm:px-2
+             text-[7px] leading-[8px]  opacity-80 sm:text-xs sm:badge sm:badge-sm sm:badge-outline flex-shrink-0"
+      title="{{ struct.name }}">
+    {{ struct.name[:80] ~ '...' if struct.name|length > 80 else struct.name }}
+</span>
+
+{% elif struct.type in ['Факультет', 'Центр', 'Лаборатория', 'Прочее'] %}
+<span class="inline-flex items-center rounded-full border border-green-500 text-green-600 bg-green-50 px-1 sm:px-2
+             text-[7px] leading-[8px] opacity-80 sm:text-xs sm:badge sm:badge-sm sm:badge-outline flex-shrink-0"
+      title="{{ struct.name }}">
+    {{ struct.name[:80] ~ '...' if struct.name|length > 80 else struct.name }}
+</span>
+
+{% elif struct.type == 'Кафедра' %}
+<span class="inline-flex items-center rounded-full border border-orange-300 text-orange-700 bg-orange-50 px-1 sm:px-2
+             text-[7px] leading-[8px] opacity-80 sm:text-xs sm:badge sm:badge-sm sm:badge-outline flex-shrink-0"
+      title="{{ struct.name }}">
+    {{ struct.name[:80] ~ '...' if struct.name|length > 80 else struct.name }}
+</span>
+
+{% else %}
+<span class="inline-flex items-center rounded-full border border-gray-500 text-gray-600 bg-gray-50 px-1 sm:px-2
+             text-[7px] leading-[8px] opacity-80 sm:text-xs sm:badge sm:badge-sm sm:badge-outline flex-shrink-0"
+      title="{{ struct.name }}">
+    {{ struct.name[:80] ~ '...' if struct.name|length > 80 else struct.name }}
+</span>
+{% endif %}

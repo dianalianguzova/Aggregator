@@ -1,0 +1,46 @@
+{% for node in nodes %}
+<div class="{% if node.parent_id %}ml-4{% endif %}">
+
+    {% set ns = namespace(has_selected=false) %}
+    {% if node.id|string in (selected_structures or []) %}
+        {% set ns.has_selected = true %}
+    {% endif %}
+    {% for child in node.children or [] %}
+        {% if child.id|string in (selected_structures or []) %}
+            {% set ns.has_selected = true %}
+        {% endif %}
+        {% for grandchild in child.children or [] %}
+            {% if grandchild.id|string in (selected_structures or []) %}
+                {% set ns.has_selected = true %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+
+    <details {% if ns.has_selected %}open{% endif %}>
+        <summary class="flex items-center gap-2 cursor-pointer hover:bg-base-200 rounded-lg px-1.5 py-1 list-none transition-colors">
+            {% if node.children %}
+            <span class="tree-arrow text-[10px]">▷</span>
+            {% else %}
+            <span class="w-3 flex-shrink-0 inline-block"></span>
+            {% endif %}
+            <label class="flex items-center gap-2 flex-1 cursor-pointer" onclick="event.stopPropagation()">
+                <input type="checkbox"
+                       name="structure_id"
+                       value="{{ node.id }}"
+                       class="checkbox checkbox-xs md:checkbox-sm"
+                       {% if node.id|string in (selected_structures or []) %}checked{% endif %}>
+                <span class="text-[11px] md:text-xs {% if not node.parent_id %}font-medium{% endif %}">
+                    {{ node.name }}
+                </span>
+            </label>
+        </summary>
+
+        {% if node.children %}
+        <div class="flex flex-col gap-0.5 mt-0.5">
+            {% set nodes = node.children %}
+            {% include "components/structure_tree.html" %}
+        </div>
+        {% endif %}
+    </details>
+</div>
+{% endfor %}

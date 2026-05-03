@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новости ВятГУ</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <style>
+        .tree-arrow {
+            display: inline-block;
+            width: 0.75rem;
+            flex-shrink: 0;
+            font-size: 0.75rem;
+            transition: transform 0.15s;
+        }
+        details[open] > summary .tree-arrow {
+            transform: rotate(90deg);
+        }
+        form:has([name="date_mode"][value="single"]:checked) .date-to-wrapper {
+            display: none;
+        }
+        .line-clamp {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-2 { -webkit-line-clamp: 2; }
+        .line-clamp-3 { -webkit-line-clamp: 3; }
+        .line-clamp-4 { -webkit-line-clamp: 4; }
+    </style>
+</head>
+
+<body class="bg-base-200">
+    <header class="navbar bg-base-100 shadow-sm">
+        <div class="max-w-7xl mx-auto w-full px-4 flex items-center gap-3">
+
+            <div class="flex-shrink-0">
+                <a href="/vyatsu.news" class="flex items-center gap-2">
+                    <img src="/static/logo.png" alt="Логотип ВятГУ" class="h-8 w-auto">
+                    <span class="text-base md:text-xl font-medium hidden sm:inline">Новости ВятГУ</span>
+                </a>
+            </div>
+
+            {% if not hide_search %}
+            <div class="flex-1">
+                <form id="search-form"
+                  class="w-full"
+                  hx-get="/vyatsu.news"
+                  hx-target="#news-feed"
+                  hx-swap="innerHTML"
+                  hx-push-url="true"
+                  hx-include="#filters-form-desktop, #search-input">
+
+                <div class="relative w-full">
+
+                    <input type="text"
+                           id="search-input"
+                           name="q"
+                           value="{{ search_query or '' }}"
+                           placeholder="Поиск по новостям..."
+                           class="input input-bordered w-full pr-20 md:pr-28 input-sm md:input-md">
+
+                    <button type="submit"
+                            class="absolute right-1 md:right-2 top-1/2 -translate-y-1/2
+                                   px-2 md:px-4 py-1 text-white
+                                   text-xs md:text-base
+                                   rounded-md md:rounded-lg
+                                   bg-gray-600 hover:bg-gray-500
+                                   transition-colors">
+                        Найти
+                    </button>
+
+                </div>
+            </form>
+            </div>
+            {% endif %}
+
+            {% if not hide_filters %}
+            <button class="btn btn-ghost btn-sm lg:hidden p-1"
+                    onclick="document.getElementById('mobile-filters-drawer').checked = true">
+
+                <img src="/static/filter_logo.svg"
+                     alt="Фильтры"
+                     class="w-5 h-5 object-contain">
+
+            </button>
+            {% endif %}
+        </div>
+    </header>
+    <main class="max-w-7xl mx-auto w-full p-4 md:p-6">
+        {% block main %}{% endblock %}
+    </main>
+</body>
+</html>

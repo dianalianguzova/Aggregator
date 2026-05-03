@@ -1,0 +1,122 @@
+<div class="card bg-base-100 shadow-none lg:shadow
+            lg:h-[calc(100vh-120px)] flex flex-col overflow-hidden">
+
+    <div class="card-body p-4 sm:p-5 flex flex-col h-full gap-0">
+
+        <h2 class="font-semibold text-base mb-4 hidden lg:block">
+            Фильтр
+        </h2>
+
+        <form id="{{ form_id }}"
+              class="flex-1 overflow-y-auto flex flex-col gap-4 pr-1"
+              hx-get="/vyatsu.news"
+              hx-target="#news-feed"
+              hx-swap="innerHTML"
+              hx-push-url="true"
+              hx-trigger="change"
+              hx-include="#search-input">
+
+            <!-- ДАТА -->
+            <div class="flex flex-col gap-2">
+
+                <div class="flex flex-wrap gap-3 px-1">
+
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio"
+                               name="date_mode"
+                               value="range"
+                               class="radio radio-sm"
+                               {% if date_mode != 'single' %}checked{% endif %}>
+                        <span class="text-xs">Диапазон</span>
+                    </label>
+
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio"
+                               name="date_mode"
+                               value="single"
+                               class="radio radio-sm"
+                               {% if date_mode == 'single' %}checked{% endif %}>
+                        <span class="text-xs">Один день</span>
+                    </label>
+
+                </div>
+
+                <div class="flex flex-col gap-2">
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs text-gray-400">С</label>
+                        <input type="date"
+                               name="date_from"
+                               value="{{ date_from or '' }}"
+                               class="input input-bordered input-sm w-full">
+                    </div>
+
+                    <div class="date-to-wrapper flex flex-col gap-1">
+                        <label class="text-xs text-gray-400">По</label>
+                        <input type="date"
+                               name="date_to"
+                               value="{{ date_to or '' }}"
+                               class="input input-bordered input-sm w-full">
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="divider my-0"></div>
+
+            <div class="flex flex-col gap-2">
+                <span class="text-sm font-medium">Источники</span>
+
+                <div class="flex flex-col gap-0.5">
+                    {% for source in sources %}
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-base-200 rounded-lg px-2 py-1.5">
+
+                        <input type="checkbox"
+                               name="source_id"
+                               value="{{ source.id }}"
+                               class="checkbox checkbox-sm"
+                               {% if source.id|string in (selected_sources or []) %}checked{% endif %}>
+
+                        {% if source.code == 'TG' %}
+                            <img src="/static/tg_logo.svg" class="w-5 h-5 flex-shrink-0">
+                        {% elif source.code.startswith('VK') %}
+                            <img src="/static/vk_logo.svg" class="w-5 h-5 flex-shrink-0">
+                        {% elif source.code == 'WEB' %}
+                            <img src="/static/web_logo.svg" class="w-5 h-5 flex-shrink-0">
+                        {% endif %}
+
+                        <span class="text-xs leading-tight">
+                            {{ source.name }}
+                        </span>
+
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="divider my-0"></div>
+
+            <div class="flex flex-col gap-1.5">
+                <span class="text-sm font-medium">Подразделение</span>
+
+                <div class="flex flex-col gap-0.5">
+                    {% set nodes = structures %}
+                    {% include "components/structure_tree.html" %}
+                </div>
+            </div>
+            <form hx-get="/vyatsu.news"
+                  hx-target="#news-feed"
+                  hx-swap="innerHTML"
+                  hx-push-url="true"
+                  class="pt-4 mt-4 border-t">
+
+                <button type="submit"
+                        class="btn btn-sm w-full
+                               bg-gray-600 text-white
+                               hover:bg-gray-500 border-none">
+                    Сбросить фильтры
+                </button>
+            </form>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% set hide_filters = True %}
+
+{% block main %}
+<div class="max-w-3xl mx-auto px-2 sm:px-4">
+
+    {% set query_parts = [] %}
+    {% for key, val in request.query_params.multi_items() %}
+        {% set _ = query_parts.append(key ~ '=' ~ val) %}
+    {% endfor %}
+    {% set back_query = query_parts | join('&') %}
+
+    <div class="mb-2">
+        <a href="/vyatsu.news/?{{ back_query }}" class="btn btn-sm btn-ghost">
+            ◁ Назад к новостям
+        </a>
+    </div>
+
+    {% set img = None %}
+
+    {% if news.source and news.source.code == 'TG' and news.image_path and news.image_path|lower not in ['nan', 'plug.jpg', 'plug.png'] %}
+        {% set img = '/media/' ~ news.image_path %}
+    {% elif news.image and news.image|lower != 'nan' %}
+        {% set img = news.image %}
+    {% endif %}
+
+    {% if img %}
+    <div class="mb-4 rounded-2xl overflow-hidden shadow-lg">
+        <img src="{{ img }}"
+             alt=""
+             class="w-full object-cover max-h-48 sm:max-h-64"
+             loading="lazy"
+             decoding="async"
+             onerror="this.onerror=null; this.src='/media/plug.jpg';">
+    </div>
+    {% endif %}
+
+    <article class="card bg-base-100 shadow-lg">
+        <div class="card-body p-4 sm:p-6">
+
+            <h1 class="text-sm sm:text-2xl font-bold leading-tight">
+                {{ news.title }}
+            </h1>
+
+            <div class="flex flex-wrap gap-2 mt-2 text-xs sm:text-sm opacity-80">  <!-- метаданные -->
+                <span>
+                    {{ news.published_at.strftime('%d.%m.%Y %H:%M') if news.published_at else "Дата неизвестна" }}
+                </span>
+                <span class="badge badge-outline badge-neutral badge-sm sm:badge-md">
+                    {{ news.source.name if news.source else 'ВятГУ' }}
+                </span>
+            </div>
+
+            {% if news.structures %}  <!-- теги структур -->
+            {% set visible_structures = news.structures[:7] %}
+            {% set hidden_structures = news.structures[7:] %}
+
+            <div class="flex flex-wrap gap-1.5 mt-2">
+                {% for ns in visible_structures %}
+                    {% set struct = ns.structure %}
+                    {% include "components/structure_badge.html" %}
+                {% endfor %}
+            </div>
+
+            {% if hidden_structures %}
+            <details class="group mt-1">
+                <summary class="list-none inline-flex badge badge-sm badge-outline border-gray-400 text-gray-500 bg-gray-50 px-3 py-0.5 cursor-pointer hover:bg-gray-100">
+                    <span class="group-open:hidden">+{{ hidden_structures|length }}</span>
+                    <span class="hidden group-open:inline">скрыть</span>
+                </summary>
+                <div class="flex flex-wrap gap-1.5 mt-2">
+                    {% for ns in hidden_structures %}
+                        {% set struct = ns.structure %}
+                        {% include "components/structure_badge.html" %}
+                    {% endfor %}
+                </div>
+            </details>
+            {% endif %}
+            {% endif %}
+
+            <div class="divider my-2"></div>
+
+            <div class="text-xs sm:text-base leading-relaxed space-y-2">
+                {% if news.text and news.text|string|lower != "nan" %}
+                    {% for p in news.text.split('\n') if p.strip() %}
+                        <p>{{ p | safe }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-2">
+                <a href="{{ news.url }}"
+                   target="_blank"
+                   class="btn btn-neutral btn-sm w-full sm:w-auto">
+                    Открыть оригинал
+                </a>
+                <a href="/vyatsu.news/?{{ back_query }}"
+                   class="btn btn-outline btn-sm w-full sm:w-auto">
+                    Назад к новостям
+                </a>
+            </div>
+        </div>
+    </article>
+</div>
+{% endblock %}
