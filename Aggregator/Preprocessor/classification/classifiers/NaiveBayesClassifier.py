@@ -11,9 +11,10 @@ from Aggregator.Preprocessor.classification.classifiers.BaseClassifier import Ba
 class NaiveBayesClassifier(BaseClassifier):
     def __init__(self, logger=None, max_features=None, alpha=1.0):
         super().__init__("naive_bayes", logger)
-        self.max_features = max_features if max_features else settings.nb.MAX_FEATURES
+        self.max_features = max_features if max_features else settings.classification.NB_FEATURES
+        self.threshold = settings.classification.NB_THRESHOLD
         self.alpha = alpha #сглаживание лапласа
-        self.model_path = settings.nb.MODEL_PATH.replace('.model', f'_{max_features}.model')
+        self.model_path = settings.nb.MODEL_PATH
         self._logger = logger or get_logger(self.__class__.__name__)
 
         self.vectorizer = CountVectorizer(
@@ -23,25 +24,28 @@ class NaiveBayesClassifier(BaseClassifier):
             ngram_range=settings.nb.NGRAM_RANGE
         )
         self.classifier = MultinomialNB(alpha=self.alpha)
-        self._is_trained = False
 
-    def train(self, texts, labels):
+    def train(self, texts, labels, optimization = False):
         try:
-            if self.load_model():
+            if not optimization and self.load_model():
+                self._logger.info(f"Классификатор загружен из файла {self.model_path}")
                 return
+
             texts_clean = [str(t) if pd.notna(t) else "" for t in texts]
-            x = self.vectorizer.fit_transform(texts_clean)#  матрица частот слов
+            x = self.vectorizer.fit_transform(texts_clean) #  матрица частот слов
             self.classifier.fit(x, labels) #обучение
-            self._is_trained = True
-            self.save_model()
-            self._logger.info(f"Модель наивного байесовского классификатора обучена на {len(texts_clean)} текстах")
+            if not optimization:
+                self.save_model()
+                self._logger.info(f"Модель наивного байесовского классификатора обучена на {len(texts_clean)} текстах")
         except Exception as e:
             self._logger.error(f"Ошибка обучения NB: {e}")
             raise
 
-    def predict(self, df: pd.DataFrame) -> pd.DataFrame:
-        if not self._is_trained and not self.load_model():
-            raise RuntimeError("Модель не обучена")
+    def predict(self, df: pd.DataFrame, optimization = False) -> pd.DataFrame:
+        if not optimization:
+            if not self.load_model():
+                self._logger.error(f"Файл модели байесовского классификатора не найден: {self.model_path}")
+                raise RuntimeError()
 
         df_result = df.copy()
         texts = df_result[self._text_col].fillna('').astype(str).tolist()
@@ -56,9 +60,6 @@ class NaiveBayesClassifier(BaseClassifier):
         return df_result
 
     def get_top_features(self, class_id=1, n=20):
-        if not self._is_trained:
-            return []
-
         feature_names = self.vectorizer.get_feature_names_out()
         # логарифм вероятности слова в классе
         log_probs = self.classifier.feature_log_prob_[class_id]
@@ -79,8 +80,6 @@ class NaiveBayesClassifier(BaseClassifier):
             return False
 
     def save_model(self) -> None:
-        if not self._is_trained:
-            return
         try:
             os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
             joblib.dump({

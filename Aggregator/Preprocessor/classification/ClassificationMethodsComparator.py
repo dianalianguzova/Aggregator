@@ -15,9 +15,7 @@ class ClassificationMethodsComparator:
         self._output_dir = settings.classification.RESULTS_OUTPUT_PATH
         self._target_col = 'is_news'
         self._thresholds = settings.ml_common.THRESHOLDS
-        self._tfidf_vocab_sizes = settings.tfidf.VOCAB_SIZES
-        self._keywords_vocab_sizes = settings.classification.KEYWORDS_VOCAB_SIZES
-        self._count_nb_vocab_sizes = settings.nb.VOCAB_SIZES
+        self._vocab_sizes = settings.ml_common.VOCAB_SIZES
 
         self.df = pd.read_csv(self._data_path)
         self._logger.info(f"Загружено {len(self.df)} размеченных новостей")
@@ -38,11 +36,10 @@ class ClassificationMethodsComparator:
             random_state=42,
             stratify=train_val_df[self._target_col]
         )
-
         self._logger.info(f"Train: {len(train_df)}, Val: {len(val_df)}, Test: {len(test_df)}")
         return train_df, val_df, test_df
 
-    def compare(self):
+    def compare(self): #сравнение на тестовой выборке
         train_df, val_df, test_df = self.split_data()
 
         for name, clf in self.methods.items():
@@ -51,28 +48,12 @@ class ClassificationMethodsComparator:
             clf.train(train_df['text_processed'].tolist(), train_df[self._target_col].tolist())
 
             if name == 'keyword':
-                #self._logger.info(f"Оценка на валидационной выборке")
-                #df_val = clf.predict(val_df)
-                #metrics = clf.evaluate(df_val)
                 self._logger.info(f"Оценка на тестовой выборке")
                 self._evaluate_on_test_keyword(name, clf, test_df)
             else:
-                self._logger.info(f"Подбор порога вероятности на {len(val_df)} текстах на валидационной выборке")
-                best = self._find_best_threshold(name, clf, val_df)
-                self._logger.info(f"Оценка на тестовой выборке размера {len(test_df)} с порогом {best['threshold']:.2f}")
-                self._evaluate_on_test(name, clf, test_df, best['threshold'])
+                self._logger.info(f"Оценка на тестовой выборке размера {len(test_df)} с порогом {clf.threshold:.2f}")
+                self._evaluate_on_test(name, clf, test_df, clf.threshold)
         self._logger.info(f"Результаты классификации в {self._output_dir}")
-
-
-    def _find_best_threshold(self, name, clf, val_df): #подбор лучшей пороговой вероятности на вал. выборке
-        df_result = clf.predict(val_df)
-        metrics = []
-        for th in self._thresholds:
-            metrics.append(clf.evaluate(df_result, th))
-        pd.DataFrame(metrics).to_csv(f"{self._output_dir}/{name}_val_metrics.csv", index=False, encoding='utf-8-sig')
-        best = max(metrics, key=lambda x: x['f1'])
-        self._logger.info(f"Лучший порог на val: {best['threshold']:.2f}, F1={best['f1']:.4f}")
-        return best
 
     def _evaluate_on_test(self, name, clf, test_df, threshold): #тест на тестовой выборке
         df_result = clf.predict(test_df)
@@ -81,7 +62,7 @@ class ClassificationMethodsComparator:
         pred_col = f'pred_{name}'
 
         if prob_col not in df_result.columns:
-            self._logger.error(f"Колонка {prob_col} не создана!")
+            self._logger.error(f"Колонка {prob_col} не создана")
             df_result[prob_col] = 0.35 #заглушка
 
         metrics = clf.evaluate(df_result, threshold) #расчет метрик и их сохранение
@@ -90,49 +71,46 @@ class ClassificationMethodsComparator:
         df_result[pred_col] = (df_result[prob_col] >= threshold).astype(int)
         df_result.to_csv(f"{self._output_dir}/{name}_test_predictions.csv", index=False, encoding='utf-8-sig') #разметка методом и ее сохранение
 
-    def _evaluate_on_test_keyword(self, name, clf, test_df): #отдельный метод для словарного метода без порога
+    def _evaluate_on_test_keyword(self, name, clf, test_df): #оценка словарного метода на тесте при лучших параметрах
         df_result = clf.predict(test_df)
         metrics = clf.evaluate(df_result)
         pd.DataFrame([metrics]).to_csv(f"{self._output_dir}/{name}_test_metrics.csv", index=False, encoding='utf-8-sig')
         df_result.to_csv(f"{self._output_dir}/{name}_test_predictions.csv", index=False, encoding='utf-8-sig')
 
-    def optimize_tfidf_vocabulary(self):  # тест на подбор лучшего размера словаря tf-idf
+    def get_tfidf_lg_params(self):  # тест на подбор лучшего размера словаря tf-idf + поиск лучшего порога lg
         return self._optimize_vocabulary_base(
-            vocab_sizes=self._tfidf_vocab_sizes,
-            classifier_class=TfIdfLgClassifier,
+            clf_name=TfIdfLgClassifier,
             param_name='max_features',
             file_prefix='tfidf_vocab',
             thresholds_include=True
         )
 
-    def optimize_keyword_vocabulary(self):  # тестирование размерности словарей уникальных слов каждого класса
+    def get_keyword_params(self):  # тестирование размерности словарей уникальных слов каждого класса
         return self._optimize_vocabulary_base(
-            vocab_sizes=self._keywords_vocab_sizes,
-            classifier_class=KeywordClassifier,
+            clf_name=KeywordClassifier,
             param_name='top_n',
             file_prefix='keyword',
             thresholds_include=False #для словарного метода не важны пороги вероятности
         )
 
-    def optimize_count_nb_vocabulary(self):  # тестирование размерности словарей count для nb
+    def get_count_nb_params(self):  # тестирование размерности словарей count для nb + поиск лучшего порога
         return self._optimize_vocabulary_base(
-            vocab_sizes=self._count_nb_vocab_sizes,
-            classifier_class=NaiveBayesClassifier,
+            clf_name=NaiveBayesClassifier,
             param_name='max_features',
             file_prefix='count_vocab',
             thresholds_include=True
         )
 
-    def _optimize_vocabulary_base(self, vocab_sizes, classifier_class, param_name, file_prefix, thresholds_include):
+    def _optimize_vocabulary_base(self, clf_name, param_name, file_prefix, thresholds_include):
         results = []
         train_df, val_df, _ = self.split_data()
 
         try:
-            for size in vocab_sizes:
+            for size in self._vocab_sizes:
                 self._logger.info(f"Тестирование словаря размера: {size}")
-                clf = classifier_class(logger=self._logger, **{param_name: size})
-                clf.train(train_df['text_processed'].tolist(), train_df[self._target_col].tolist())
-                df_val = clf.predict(val_df)
+                clf = clf_name(logger=self._logger, **{param_name: size})
+                clf.train(train_df['text_processed'].tolist(), train_df[self._target_col].tolist(), True)
+                df_val = clf.predict(val_df, True)
 
                 if thresholds_include:
                     for th in self._thresholds:  # оценка при разных порогах
@@ -146,7 +124,6 @@ class ClassificationMethodsComparator:
                         index=False,
                         encoding='utf-8-sig'
                     )
-
                 else:
                     metrics = clf.evaluate(df_val)
                     metrics[param_name] = size

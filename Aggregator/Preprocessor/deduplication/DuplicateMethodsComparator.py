@@ -14,7 +14,7 @@ class DuplicateMethodComparator:
         self._data_path = settings.dedup.DATA_FILE_PATH #размеченный файл с парами
         self._output_dir = settings.dedup.SIM_OUTPUT_FILE_PATH #выходной файл с результатами
         self._target_col = 'is_duplicate'
-        self._vocab_sizes = settings.tfidf.VOCAB_SIZES
+        self._vocab_sizes = settings.ml_common.VOCAB_SIZES
         self._thresholds = settings.ml_common.THRESHOLDS #разные пороги схожести для тестирования
 
         self.df = pd.read_csv(self._data_path)
@@ -54,36 +54,56 @@ class DuplicateMethodComparator:
         metrics_df.to_csv(f"{self._output_dir}/{method_name}_metrics.csv", index=False, encoding='utf-8-sig') #сохранение метрик метода
 
         best = max(metrics, key=lambda x: x['f1']) #вычисление лучшего порога для метода
-        #best_df = pd.DataFrame([best])
-        #best_df.to_csv(f"{self.output_dir}/{method_name}_best.csv", index=False, encoding='utf-8-sig')
 
         df_pred = self.results_df.copy() #сохранение предсказаний с лучшим порогом
         df_pred[f'pred_{method_name}'] = (df_pred[f'sim_{method_name}'] >= best['threshold']).astype(int)
         df_pred.to_csv(f"{self._output_dir}/{method_name}_predictions.csv", index=False, encoding='utf-8-sig')
 
-    def optimize_tfidf_vocabulary(self, posts: list['Post'], threshold=0.55):
-        results = []
+    def optimize_tfidf_vocabulary(self, posts: list['Post']):
+        results_summary = []
 
         try:
             for size in self._vocab_sizes:
-                original_path = settings.tfidf.DEDUPLICATION_MODEL_PATH
-                settings.tfidf.DEDUPLICATION_MODEL_PATH = f"Preprocessor/deduplication/models/tfidf_{size}.model" #смена пути для модели, чтобы не перезаписывать файл
-                detector = TFIDFDetector(self._logger, max_features=size)
+                self._logger.info(f"Тестирование TF-IDF vocab_size = {size}")
 
+                original_path = settings.tfidf.DEDUPLICATION_MODEL_PATH
+                settings.tfidf.DEDUPLICATION_MODEL_PATH = (f"Preprocessor/deduplication/models/tfidf_{size}.model")
+
+                detector = TFIDFDetector(self._logger, max_features=size)
                 detector._is_trained = False
-                detector.train(posts)  # обучение с новым размером
+                detector.train(posts)
+
                 settings.tfidf.DEDUPLICATION_MODEL_PATH = original_path
 
-                df_result = self.df.copy() #результаты предсказаний
+                df_result = self.df.copy()
                 df_result = detector.predict(df_result)
 
-                metrics = detector.evaluate(df_result, threshold)
-                metrics['vocab_size'] = size
-                results.append(metrics)
+                metrics_list = []
+                for th in self._thresholds:
+                    metrics = detector.evaluate(df_result, th)
+                    metrics['vocab_size'] = size
+                    metrics_list.append(metrics)
 
-            results_df = pd.DataFrame(results)
-            results_df.to_csv(f"{self._output_dir}/vocabulary_optimization.csv",index=False, encoding='utf-8-sig')
-            return results_df
+                metrics_df = pd.DataFrame(metrics_list)
+
+                metrics_df.to_csv(
+                    f"{self._output_dir}/tfidf_vocab_{size}_metrics.csv",
+                    index=False,
+                    encoding='utf-8-sig'
+                )
+
+                best = max(metrics_list, key=lambda x: x['f1'])
+                best['vocab_size'] = size
+                results_summary.append(best)
+
+            summary_df = pd.DataFrame(results_summary) #лучший результат
+            summary_df.to_csv(
+                f"{self._output_dir}/vocabulary_optimization_summary.csv",
+                index=False,
+                encoding='utf-8-sig'
+            )
+            return summary_df
+
         except Exception as e:
             self._logger.error(f"Ошибка тестирования TF-IDF: {e}")
             return None

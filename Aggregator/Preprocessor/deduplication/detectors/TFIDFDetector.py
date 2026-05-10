@@ -15,24 +15,8 @@ class TFIDFDetector(BaseDuplicateDetector):
         self.vectors = None
         self.model_path = settings.tfidf.DEDUPLICATION_MODEL_PATH
         self._is_trained = False
-        self.max_features = max_features if max_features else settings.tfidf.MAX_FEATURES_DEDUPLICATION
+        self.max_features = max_features if max_features else settings.dedup.TFIDF_FEATURES
         self._logger = logger or get_logger(self.__class__.__name__)
-
-    def similarity(self, text1: str, text2: str) -> float:
-        if not self._is_trained:
-            self._logger.error("Модель не обучена")
-            return 0.0
-        if not text1 or not text2:
-            return 0.0
-        try:
-            vectors = self.vectorize([text1, text2])
-            if vectors is None or vectors.shape[0] < 2:
-                return 0.0
-            sim = cosine_similarity(vectors[0], vectors[1])[0][0]
-            return float(sim)
-        except Exception as e:
-            self._logger.error(f"Ошибка вычисления значения похожести текстов (TF-IDF): {e}")
-            return 0.0
 
     def train(self, posts: list['Post']) -> None:
         try:
@@ -92,4 +76,18 @@ class TFIDFDetector(BaseDuplicateDetector):
         except Exception as e:
             self._logger.error(f"Ошибка сохранения TF-IDF модели: {e}")
 
-
+    def similarity(self, text1: str, text2: str) -> float:
+        if not self._is_trained:
+            self._logger.error("Модель не обучена")
+            return 0.0
+        if not text1 or not text2:
+            return 0.0
+        try:
+            vectors = self.vectorize([text1, text2])
+            if vectors is None or vectors.shape[0] < 2:
+                return 0.0
+            sim = cosine_similarity(vectors[0], vectors[1])[0][0]
+            return float(sim)
+        except Exception as e:
+            self._logger.error(f"Ошибка вычисления значения похожести текстов (TF-IDF): {e}")
+            return 0.0

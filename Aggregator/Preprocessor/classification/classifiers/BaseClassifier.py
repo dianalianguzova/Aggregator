@@ -32,12 +32,4 @@ class BaseClassifier(ABC):
             'tn': ((y_true == 0) & (y_pred == 0)).sum(),
             'fn': ((y_true == 1) & (y_pred == 0)).sum()
         }
-
-        if len(set(y_true)) > 1: #roc-auc
-            try:
-                metrics['roc_auc'] = roc_auc_score(y_true, y_prob)
-            except:
-                metrics['roc_auc'] = 0.0
-        else:
-            metrics['roc_auc'] = 0.0
         return metrics

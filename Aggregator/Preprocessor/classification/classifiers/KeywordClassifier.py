@@ -7,17 +7,45 @@ from Aggregator.Settings import settings
 from Aggregator.Preprocessor.classification.classifiers.BaseClassifier import BaseClassifier
 
 class KeywordClassifier(BaseClassifier):
-    def __init__(self, logger=None, top_n=15000):
+    def __init__(self, logger=None, top_n=None):
         super().__init__('keyword', logger)
-        self.top_n = top_n
+        self.top_n = top_n if top_n else settings.classification.KEYWORDS_TOPN
         self.class_0_words = []  # топ-N слов для класса 0 (шум)
         self.class_1_words = []  # топ-N слов для класса 1 (новость)
-        self._is_dict = False
         self.dicts_path = settings.classification.KEYWORDS_DICTS_PATH
         self._logger = logger or get_logger(self.__class__.__name__)
 
-    def train(self, texts, labels):
+    def _is_ready(self) -> bool: #загружены ли словари
+        return bool(self.class_0_words or self.class_1_words)
+
+    def predict(self, df: pd.DataFrame) -> pd.DataFrame:
+        if not self.load_dicts():
+            raise RuntimeError("Не найдены словари уникальных слов")
+
+        df_result = df.copy()
+        pred_col = f'pred_{self.name}'  # метка класса (0,1,-1)
+        predictions = []
+
+        for text in df_result[self._text_col]:
+            words = set(str(text).split())  # слова из запроса (одной новости)
+            intersect_0 = len(words & set(self.class_0_words))
+            intersect_1 = len(words & set(self.class_1_words))
+
+            if intersect_0 > intersect_1:
+                predictions.append(0)
+            elif intersect_1 > intersect_0:
+                predictions.append(1)
+            else:
+                predictions.append(-1)  # неопределенный класс -1
+        df_result[pred_col] = predictions
+        return df_result
+
+    def train(self, texts, labels, optimization = False):
         try:
+            if not optimization and self.load_dicts():
+                self._logger.info(f"Словари загружены из {self.dicts_path}")
+                return
+
             texts_series = pd.Series(texts)
             labels_series = pd.Series(labels)
 
@@ -36,12 +64,12 @@ class KeywordClassifier(BaseClassifier):
             set_0 = set(counter_0.keys())# множества слов из обоих классов
             set_1 = set(counter_1.keys())
 
-            # класс 0: оставляем только слова, которых нет в классе 1
+            # слова, которых нет в классе 1
             unique_0 = [(w, c) for w, c in counter_0.items() if w not in set_1]
             unique_0.sort(key=lambda x: x[1], reverse=True)
             self.class_0_words = [w for w, _ in unique_0[:self.top_n]]
 
-            # класс 1: оставляем только слова, которых нет в классе 0
+            # слова, которых нет в классе 0
             unique_1 = [(w, c) for w, c in counter_1.items() if w not in set_0]
             unique_1.sort(key=lambda x: x[1], reverse=True)
             self.class_1_words = [w for w, _ in unique_1[:self.top_n]]
@@ -49,9 +77,8 @@ class KeywordClassifier(BaseClassifier):
             #self._logger.info(f"Примеры слов класса 0: {self.class_0_words[:20]}")
             #self._logger.info(f"Примеры слов класса 1: {self.class_1_words[:20]}")
             self._logger.info(f"Размер полученных словарей: {len(self.class_0_words)} слов класса 0 и {len(self.class_1_words)} класса 1")
-
-            self._is_trained = True
-            self.save_dicts()
+            if not optimization:
+                self.save_dicts()
         except Exception as e:
             self._logger.error(f"Ошибка получения словарей ключевых слов: {e}")
             raise
@@ -86,29 +113,6 @@ class KeywordClassifier(BaseClassifier):
         }
         return metrics
 
-    def predict(self, df: pd.DataFrame) -> pd.DataFrame:
-        if not self._is_dict:
-            if not self.load_dicts():
-                raise RuntimeError("Не найдены словари уникальных слов")
-
-        df_result = df.copy()
-        pred_col = f'pred_{self.name}' #метка класса (0,1,-1)
-        predictions = []
-
-        for text in df_result[self._text_col]:
-            words = set(str(text).split()) #слова из запроса (одной новости)
-            intersect_0 = len(words & set(self.class_0_words))
-            intersect_1 = len(words & set(self.class_1_words))
-
-            if intersect_0 > intersect_1:
-                predictions.append(0)
-            elif intersect_1 > intersect_0:
-                predictions.append(1)
-            else:
-                predictions.append(-1)  # неопределенный класс -1
-        df_result[pred_col] = predictions
-        return df_result
-
     def load_dicts(self) -> bool:
         try:
             if os.path.exists(self.dicts_path):
@@ -116,7 +120,6 @@ class KeywordClassifier(BaseClassifier):
                 self.class_0_words = data['class_0_words']
                 self.class_1_words = data['class_1_words']
                 self.top_n = data['top_n']
-                self._is_dict = True
                 self._logger.info(f"Словари {self.name} загружены из {self.dicts_path}")
                 return True
             return False
