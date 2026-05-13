@@ -25,13 +25,11 @@ class ParserTG(Parser):
         self._period_reached = False
         self._run_parsing([channel])
 
-
     def parse_dataset(self): #для датасета парсится список каналов до фикс даты
         self._data = []
         self.target_date = settings.common.LAST_DATE
         self._period_reached = False
         self._run_parsing(self._channels)
-
 
     def _run_parsing(self, channels: list[str]):
         try:

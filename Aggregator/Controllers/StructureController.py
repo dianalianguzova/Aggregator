@@ -12,25 +12,6 @@ class StructureController:
         self.db = db_connection
         self._logger = logger or get_logger(self.__class__.__name__)
 
-        self.router = APIRouter(prefix="/vyatsu.news/structures", tags=["Structures"])
-        self._setup_routes()
-
-    def _setup_routes(self):
-        @self.router.get("/", response_model=list[StructureSchema]) #получение всех структурных подразделений
-        async def api_get_all():
-            return self.get_all_structures()
-
-        @self.router.get("/{structure_id}", response_model=StructureSchema)
-        async def api_get_one(structure_id: int):
-            struct = self.get_structure_by_id(structure_id)
-            if not struct:
-                raise HTTPException(status_code=404, detail="Структура не найдена")
-            return struct
-
-        @self.router.get("/tree", response_model=list[StructureTreeSchema])
-        async def api_get_structure_tree():
-            return self.get_structure_tree()
-
     def get_structure_tree(self) -> list[Structure]:
         session = self.db.get_session()
         try:
@@ -59,17 +40,6 @@ class StructureController:
         except Exception as e:
             self.logger.error(f"Ошибка при получении структур из БД: {e}")
             return []
-        finally:
-            session.close()
-
-    def get_structure_by_id(self, structure_id: int) -> Structure:
-        session = self.db.get_session()
-        try:
-            db_struct = session.query(StructureDB).filter(StructureDB.id == structure_id).first()
-            return Structure.from_db(db_struct) if db_struct else None
-        except Exception as e:
-            self.logger.error(f"Ошибка при поиске структуры по ID {structure_id}: {e}")
-            return None
         finally:
             session.close()
 

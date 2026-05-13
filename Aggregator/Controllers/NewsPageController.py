@@ -14,7 +14,7 @@ from Aggregator.Model.News import NewsDB
 from Aggregator.Model.NewsStructure import NewsStructureDB
 
 
-class NewsPageController: #HTTP + Jinja
+class NewsPageController:
     def __init__(self, db_connection: DBConnection, templates, logger=None):
         self.db = db_connection
         self.templates = templates
@@ -35,23 +35,22 @@ class NewsPageController: #HTTP + Jinja
                 date_from: str = Query(None),
                 date_to: str = Query(None),
                 date_mode: str = Query("range"),
-                q: str = Query(None),
+                search: str = Query(None),
         ):
             session = self.db.get_session()
             try:
-                query = self._build_news_query(session, q, source_id, structure_id, date_from, date_to, date_mode)
+                query = self._build_news_query(session, search, source_id, structure_id, date_from, date_to, date_mode)
 
                 total = query.with_entities(func.count(NewsDB.id)).scalar()
 
-
                 query = self._apply_eager_loading(query) # загрузка и сортировка только для финальной выборки
-                query = self._apply_ordering(query, q)
+                query = self._apply_ordering(query, search)
 
                 db_news = query.offset((page - 1) * page_size).limit(page_size).all()
 
                 context = self._build_context(
                     request, db_news, page, page_size, total,
-                    source_id, structure_id, date_from, date_to, date_mode, q
+                    source_id, structure_id, date_from, date_to, date_mode, search
                 )
 
                 if request.headers.get("HX-Request"):
@@ -83,11 +82,11 @@ class NewsPageController: #HTTP + Jinja
             selectinload(NewsDB.structures).joinedload(NewsStructureDB.structure)
         )
 
-    def _build_news_query(self, session, q, source_id, structure_id, date_from, date_to, date_mode):
+    def _build_news_query(self, session, search, source_id, structure_id, date_from, date_to, date_mode):
         query = session.query(NewsDB)
 
-        if q and q.strip():
-            words = q.strip().split()[:5]
+        if search and search.strip():
+            words = search.strip().split()[:5]
             corrected_words = []
 
             for w in words:
@@ -98,13 +97,11 @@ class NewsPageController: #HTTP + Jinja
                 suggested = result.scalar()
                 corrected_words.append(suggested if suggested else w)
 
+            ts_query_str = " ".join(corrected_words)
 
-            ts_query_str = " & ".join(corrected_words) #сбор слов для полнотекстового поиска
-
-            query = query.filter( #фильтр по вектору
-                NewsDB.search_vector.op('@@')(func.to_tsquery('russian', ts_query_str))
+            query = query.filter(#фильтр по вектору
+                NewsDB.search_vector.op('@@')(func.plainto_tsquery('russian', ts_query_str))
             )
-
 
         if source_id: # фильтр по источникам
             query = query.filter(NewsDB.source_id.in_(source_id))
@@ -136,13 +133,13 @@ class NewsPageController: #HTTP + Jinja
             pass
         return query
 
-    def _apply_ordering(self, query, q):
-        if q and q.strip():
+    def _apply_ordering(self, query, search):
+        if search and search.strip():
             return query.order_by(NewsDB.published_at.desc())
         return query.order_by(NewsDB.published_at.desc())
 
     def _build_context(self, request, db_news, page, page_size, total,
-                        source_id, structure_id, date_from, date_to, date_mode, q):
+                        source_id, structure_id, date_from, date_to, date_mode, search):
         total_pages = (total + page_size - 1) // page_size
         return {
                 "request": request,
@@ -157,7 +154,7 @@ class NewsPageController: #HTTP + Jinja
                 "date_from": date_from or "",
                 "date_to": date_to or "",
                 "date_mode": date_mode,
-                "search_query": q or "",
+                "search_query": search or "",
         }
 
     def get_pagination_pages(self, current_page: int, total_pages: int, window: int = 7):

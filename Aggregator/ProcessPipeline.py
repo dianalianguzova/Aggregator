@@ -1,6 +1,8 @@
 import time
 from datetime import datetime, timezone, timedelta
 
+from sqlalchemy import text
+
 from Aggregator.Controllers.NewsIngestionService import NewsIngestionService
 from Aggregator.Controllers.SourceController import SourceController
 from Aggregator.DataBase.db.DbConnection import DBConnection
@@ -32,40 +34,46 @@ class ProcessPipeline:
         while True:
             try:
                 new_posts = self._parse_sources()
-                if not new_posts:# если постов нет,идем в конец цикла
+                if not new_posts:
                     self._logger.info("Новых постов в источниках не найдено")
                 else:
-                    self._cleaner.clean_text_posts(new_posts)
-                    new_posts = self._classifier.classify_posts_service(new_posts)
+                    self._cleaner.clean_text_posts(new_posts) #предобработка текстов
+                    new_posts = self._classifier.classify_posts_service(new_posts) #бинарная классификация
                     new_posts = [p for p in new_posts if p.is_news == 1]
 
                     self._logger.info(f"После классификации: {len(new_posts)} новостей")
-
                     if not new_posts:
                         self._logger.info("Ни один из новых постов не прошел фильтр новостей")
                     else:
-                        db_posts = self._news_controller.get_week_posts_for_dedup()
-                        self._cleaner.clean_text_posts(db_posts)
+                        db_posts = self._news_controller.get_week_posts_for_dedup()  #новости из БД за посл неделю
+                        self._cleaner.clean_text_posts(db_posts) #предобработка текстов из БД
 
-                        unique_posts = self._deduplicator.deduplicate_service(
-                            new_posts=new_posts,
-                            db_posts=db_posts
-                        )
-
+                        unique_posts = self._deduplicator.deduplicate_service(new_posts=new_posts,db_posts=db_posts) #дедупликация
                         self._logger.info(f"После дедупликации осталось: {len(unique_posts)}")
                         if not unique_posts:
-                            self._logger.info("Все новые новости оказались дубликатами")
+                            self._logger.info("Все новые новости являются дубликатами")
                         else:
-                            posts = self._structure_extractor.extract_structures_service(unique_posts)
-                            success = self._news_controller.add_news_from_posts(posts)
+                            posts = self._structure_extractor.extract_structures_service(unique_posts) #извлечение подразделений
+                            success = self._news_controller.add_news_from_posts(posts) #добавление в БД
                             if success:
+                                self._refresh_search_dictionary()  # обновление словаря
                                 self._logger.info("Пайплайн завершен: новости сохранены")
-
             except Exception as e:
                 self._logger.error(f"Ошибка в цикле пайплайна: {e}", exc_info=True)
             self._logger.info(f"Ожидание {interval_minutes} минут до следующего запуска")
             time.sleep(interval_minutes * 60)
 
+    def _refresh_search_dictionary(self):
+        session = self._db.get_session()
+        try:
+            session.execute(text("REFRESH MATERIALIZED VIEW news_dictionary"))
+            session.commit()
+            self._logger.info("Словарь терминов обновлен")
+        except Exception as e:
+            session.rollback()
+            self._logger.error(f"Ошибка обновления словаря поиска: {e}")
+        finally:
+            session.close()
 
     def _parse_sources(self) -> list['Post']:
         self._logger.info("Начат парсинг новостей по источникам")

@@ -32,13 +32,9 @@ app.add_middleware(
 
 # инициализация контроллеров
 news_page_controller = NewsPageController(db_connection, templates)
-structure_controller = StructureController(db_connection)
-source_controller = SourceController(db_connection)
 
 # подключение маршрутов
 app.include_router(news_page_controller.router)
-app.include_router(structure_controller.router)
-app.include_router(source_controller.router)
 
 @app.get("/")
 async def root():
