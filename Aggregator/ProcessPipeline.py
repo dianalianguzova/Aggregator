@@ -5,6 +5,7 @@ from sqlalchemy import text
 
 from Aggregator.Controllers.NewsIngestionService import NewsIngestionService
 from Aggregator.Controllers.SourceController import SourceController
+from Aggregator.Controllers.StructureController import StructureController
 from Aggregator.DataBase.db.DbConnection import DBConnection
 from Aggregator.Settings import settings
 from Aggregator.DataParser.tg.ParserTG import ParserTG
@@ -23,7 +24,8 @@ class ProcessPipeline:
         self._vk_parser = ParserVK()
         self._tg_parser = ParserTG()
         self._db = DBConnection()
-        self._news_controller = NewsIngestionService(self._db, logger)
+        self._structure_controller = StructureController(self._db)
+        self._news_controller = NewsIngestionService(self._db, self._structure_controller, logger)
         self._source_controller = SourceController(self._db, logger)
         self._cleaner = TextCleaner(logger)
         self._classifier = ClassificationFilter(logger)
@@ -95,7 +97,7 @@ class ProcessPipeline:
                     self._vk_parser.parse_service(source.group_name, target_dt, source_code=source.code)
                     source_posts = self._vk_parser.data
 
-                elif source.type == 'Web':
+                elif source.type == 'web':
                     self._web_parser.parse_service(target_dt)
                     source_posts = self._web_parser.data
                 else:

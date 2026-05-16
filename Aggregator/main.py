@@ -5,8 +5,6 @@ from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
 from Aggregator.Controllers.NewsPageController import NewsPageController
-from Aggregator.Controllers.SourceController import SourceController
-from Aggregator.Controllers.StructureController import StructureController
 from Aggregator.DataBase.db.DbConnection import DBConnection
 
 db_connection = DBConnection()

@@ -9,7 +9,7 @@ from Aggregator.Preprocessor.classification.classifiers.TfIdfLgClassifier import
 class ClassificationFilter:
     def __init__(self, logger=None):
         self._logger = logger or get_logger(self.__class__.__name__)
-        self.threshold = settings.classification.THRESHOLD  # оптимальный порог вероятности
+        self.threshold = settings.classification.TFIDF_THRESHOLD  # оптимальный порог вероятности
         self.classifier = TfIdfLgClassifier(logger)
         self.csv_manager = CsvManager(logger)
         self._is_ready = False

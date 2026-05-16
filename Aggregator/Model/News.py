@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import Column, DateTime, String, BigInteger, Integer, ForeignKey, JSON, ARRAY
+from sqlalchemy import Column, DateTime, String, BigInteger, Integer, ForeignKey, JSON, ARRAY, FetchedValue
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import relationship
 
@@ -22,7 +22,7 @@ class NewsDB(Base):  #модель для работы с БД
     image = Column(String)
     image_path = Column(String)
     links = Column(JSON, default={})
-    search_vector = Column(TSVECTOR)
+    search_vector = Column(TSVECTOR, server_default=FetchedValue())
 
     #связи
     source = relationship("SourceDB", back_populates="news")

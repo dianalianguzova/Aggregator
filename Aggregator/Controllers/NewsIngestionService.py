@@ -10,7 +10,6 @@ from Aggregator.Model.Post import Post
 from Aggregator.Model.Source import SourceDB
 from Aggregator.Settings import Settings
 
-
 class NewsIngestionService:
     def __init__(self, db_connection: DBConnection, structure_controller, logger=None):
         self.db = db_connection
@@ -20,8 +19,7 @@ class NewsIngestionService:
     def add_news_from_posts(self, posts: list[Post]) -> bool:  # сохранение постов в базу
         session = self.db.get_session()
         try:
-            structures_cache = {s.name.lower(): s for s in
-                                self.structure_controller.get_all_structures()}  # кэш структур
+            structures_cache = {s.name.lower(): s for s in self.structure_controller.get_all_structures()}  # кэш структур
             sources = {s.code: s.id for s in session.query(SourceDB).all()}  # получение справочника источников
 
             urls = [p.url for p in posts]  # сбор всех ссылок из пачки

@@ -58,7 +58,6 @@ class TfIdfLgClassifier(BaseClassifier):
                 data = joblib.load(self.model_path)
                 self.vectorizer = data['vectorizer']
                 self.classifier = data['classifier']
-                self._logger.info(f"Модель {self.name} успешно загружена")
                 return True
             else:
                 self._logger.warning(f"Файл модели не найден: {self.model_path}")

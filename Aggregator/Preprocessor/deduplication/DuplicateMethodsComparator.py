@@ -21,9 +21,9 @@ class DuplicateMethodComparator:
         self.results_df = self.df.copy()
 
         self.methods = {
-            'inclusion': InclusionDetector(),
+            #'inclusion': InclusionDetector(),
             'tfidf': TFIDFDetector(logger),
-            'sbert': SBERTDetector(logger)
+            #'sbert': SBERTDetector(logger)
         }
 
     def compare(self, posts: list['Post']): #сравнение методов всех
