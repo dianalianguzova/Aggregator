@@ -2,6 +2,25 @@
 {% set hide_filters = True %}
 
 {% block main %}
+{% if not news %}
+
+<div class="max-w-2xl mx-auto px-4 py-10">
+    <div class="card bg-base-100 shadow-xl border border-base-300">
+        <div class="card-body items-center text-center">
+            <h1 class="text-2xl font-bold">
+                Новость не найдена
+            </h1>
+            <div class="mt-1">
+                <a href="/vyatsu.news/"
+                   class="btn btn-neutral">
+                    Вернуться к ленте новостей
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
 <div class="max-w-3xl mx-auto px-2 sm:px-4">
 
     {% set query_parts = [] %}
@@ -102,4 +121,5 @@
         </div>
     </article>
 </div>
+{% endif %}
 {% endblock %}

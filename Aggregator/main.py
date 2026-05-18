@@ -10,29 +10,21 @@ from Aggregator.DataBase.db.DbConnection import DBConnection
 db_connection = DBConnection()
 templates = Jinja2Templates(directory="Web/templates")
 
-app = FastAPI(
-    title="News Aggregator API",
-    description="API для агрегатора новостей вуза",
-    version="1.0.0"
-)
+app = FastAPI()
 
-app.mount("/media", StaticFiles(directory="DataParser/media"), name="media")
-app.mount("/static", StaticFiles(directory="Web/static"), name="static")
+app.mount("/media", StaticFiles(directory="DataParser/media"), name="media")  # медиа для тг постов
+app.mount("/static", StaticFiles(directory="Web/static"), name="static") # лого
 
-# настройка CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "OPTIONS"],
+    allow_methods=["GET"],
     allow_headers=["*"],
 )
 
-# инициализация контроллеров
 news_page_controller = NewsPageController(db_connection, templates)
-
-# подключение маршрутов
-app.include_router(news_page_controller.router)
+app.include_router(news_page_controller.router) # подключение маршрутов
 
 @app.get("/")
 async def root():
