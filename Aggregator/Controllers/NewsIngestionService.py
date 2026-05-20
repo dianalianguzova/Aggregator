@@ -10,7 +10,7 @@ from Aggregator.Model.Post import Post
 from Aggregator.Model.Source import SourceDB
 from Aggregator.Settings import Settings
 
-class NewsIngestionService:
+class NewsIngestionService: #для работы с сохранением и извлечением данных из БД
     def __init__(self, db_connection: DBConnection, structure_controller, logger=None):
         self.db = db_connection
         self.structure_controller = structure_controller  # контроллер структур

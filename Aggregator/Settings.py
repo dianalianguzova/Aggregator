@@ -14,7 +14,7 @@ class DBConfig(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_PATH,env_file_encoding="utf-8",extra="ignore")
 
 class ParserCommonConfig:
-    NEWS_RAW_FILE: str = "Datafiles/jan_test_raw.csv"
+    NEWS_RAW_FILE: str = "Datafiles/dataset_raw.csv"
     DATE_FORMAT: str = "%d/%m/%Y %H:%M"
     LAST_DATE: str = "31/12/2022 23:59"
     MEDIA_BASE_PATH: str = "DataParser/media/"
@@ -81,7 +81,7 @@ class ClassificationConfig:
     DATA_FILE_PATH: str = "Datafiles/dataset_cleaned_marked.csv"
     RESULTS_OUTPUT_PATH: str = "Datafiles/classification/"
     KEYWORDS_DICTS_PATH: str = "Preprocessor/models/keywords_sets.pkl"
-    KEYWORDS_TOPN: int = 12000
+    KEYWORDS_TOPN: int = 3000
     TFIDF_THRESHOLD: float = 0.35
     TFIDF_FEATURES: int = 8000
     NB_THRESHOLD: float = 0.1

@@ -2,6 +2,8 @@ import os
 from collections import Counter
 import joblib
 import pandas as pd
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
+
 from Aggregator.Logger.Logger import get_logger
 from Aggregator.Settings import settings
 from Aggregator.Preprocessor.classification.classifiers.BaseClassifier import BaseClassifier
@@ -18,12 +20,13 @@ class KeywordClassifier(BaseClassifier):
     def _is_ready(self) -> bool: #загружены ли словари
         return bool(self.class_0_words or self.class_1_words)
 
-    def predict(self, df: pd.DataFrame) -> pd.DataFrame:
-        if not self.load_dicts():
-            raise RuntimeError("Не найдены словари уникальных слов")
+    def predict(self, df: pd.DataFrame, optimization = False) -> pd.DataFrame:
+        if not optimization:
+            if not self.load_dicts():
+                raise RuntimeError("Не найдены словари уникальных слов")
 
         df_result = df.copy()
-        pred_col = f'pred_{self.name}'  # метка класса (0,1,-1)
+        pred_col = f'pred_{self.name}'  # метка класса (0,1)
         predictions = []
 
         for text in df_result[self._text_col]:
@@ -33,10 +36,8 @@ class KeywordClassifier(BaseClassifier):
 
             if intersect_0 > intersect_1:
                 predictions.append(0)
-            elif intersect_1 > intersect_0:
+            else:  #в случае если кол-во слов 1 класса >= кол-ва слов 0 класса
                 predictions.append(1)
-            else:
-                predictions.append(-1)  # неопределенный класс -1
         df_result[pred_col] = predictions
         return df_result
 
@@ -83,33 +84,20 @@ class KeywordClassifier(BaseClassifier):
             self._logger.error(f"Ошибка получения словарей ключевых слов: {e}")
             raise
 
-    def evaluate(self, df: pd.DataFrame, threshold=None) -> dict[str, any]: #переопределение подсчета метрик
+    def evaluate(self, df: pd.DataFrame, threshold=None) -> dict[str, any]: #переопределение подсчета метрик (без вероятностей)
         y_true = df[self._target_col].values
         y_pred = df[f'pred_{self.name}'].values
 
-        tp = ((y_true == 1) & (y_pred == 1)).sum()
-        tn = ((y_true == 0) & (y_pred == 0)).sum()
-        fp = ((y_true == 0) & (y_pred == 1)).sum()
-        fn = ((y_true == 1) & (y_pred == 0)).sum()
-
-        undefined = (y_pred == -1).sum() # неопределенные -1 - ошибочные
-        fp += ((y_true == 0) & (y_pred == -1)).sum()
-        fn += ((y_true == 1) & (y_pred == -1)).sum()
-
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0 #подсчет вручную, так как есть еще третий класс -1 (ошибочный)
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = 2 * tp / (2 * tp + fp + fn) if (2 * tp + fp + fn) > 0 else 0.0
-
+        tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
         metrics = {
             'method': self.name,
-            'precision': precision,
-            'recall': recall,
-            'f1': f1,
+            'precision': precision_score(y_true, y_pred, zero_division=0),
+            'recall': recall_score(y_true, y_pred, zero_division=0),
+            'f1': f1_score(y_true, y_pred, zero_division=0),
             'tp': int(tp),
             'fp': int(fp),
             'tn': int(tn),
-            'fn': int(fn),
-            'undefined': int(undefined)
+            'fn': int(fn)
         }
         return metrics
 

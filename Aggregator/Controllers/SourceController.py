@@ -19,7 +19,7 @@ class SourceController:
         try:
             query = session.query(SourceDB)
             if only_active:
-                query = query.filter(SourceDB.is_active == True)
+                query = query.filter(SourceDB.is_active == True) #получение только активных источников
             return query.all()
         finally:
             session.close()

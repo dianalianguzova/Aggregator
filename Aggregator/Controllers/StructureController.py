@@ -6,13 +6,12 @@ from Aggregator.DataBase.db.DbConnection import DBConnection
 from Aggregator.Logger.Logger import get_logger
 from Aggregator.Model.Structure import Structure, StructureDB, StructureSchema, StructureTreeSchema
 
-
 class StructureController:
     def __init__(self, db_connection: DBConnection, logger = None):
         self.db = db_connection
         self._logger = logger or get_logger(self.__class__.__name__)
 
-    def get_structure_tree(self) -> list[Structure]:
+    def get_structure_tree(self) -> list[Structure]: #получение иерархии подразделений для фильтра
         session = self.db.get_session()
         try:
             db_structures = session.query(StructureDB).all()
@@ -44,14 +43,13 @@ class StructureController:
             session.close()
 
     def get_all_child_ids(self, session, parent_id: int) -> list[int]: #рекурсивно находит детей родительской структуры
-        # начальная точка (сам институт/факультет)
+        # начальная точка (институт/факультет)
         hierarchy = session.query(StructureDB.id).filter(StructureDB.id == parent_id).cte(name="hierarchy", recursive=True)
 
         parent_alias = aliased(StructureDB)# находим детей рекурсивно
         hierarchy = hierarchy.union_all(session.query(parent_alias.id).join(hierarchy, parent_alias.parent_id == hierarchy.c.id))
 
-        # возвращаем плоский список всех id (институт + все его кафедры)
-        results = session.query(hierarchy).all()
+        results = session.query(hierarchy).all() # возвращаем список всех id (корень + дети все)
         return [r[0] for r in results]
 
 

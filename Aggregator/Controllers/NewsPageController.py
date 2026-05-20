@@ -13,7 +13,6 @@ from Aggregator.Logger.Logger import get_logger
 from Aggregator.Model.News import NewsDB
 from Aggregator.Model.NewsStructure import NewsStructureDB
 
-
 class NewsPageController:
     def __init__(self, db_connection: DBConnection, templates, logger=None):
         self.db = db_connection
@@ -26,7 +25,7 @@ class NewsPageController:
 
     def _setup_routes(self):
         @self.router.get("/")
-        async def news_page(
+        async def news_page( #получение новостей в новостной ленте со всеми фильтрами
                 request: Request,
                 page: int = Query(1, ge=1),
                 page_size: int = Query(20, ge=1, le=100),
@@ -41,24 +40,29 @@ class NewsPageController:
             try:
                 query = self._build_news_query(session, search, source_id, structure_id, date_from, date_to, date_mode)
 
-                total = query.with_entities(func.count(NewsDB.id)).scalar()
+                total = query.with_entities(func.count(NewsDB.id)).scalar() #общее количество найденных новостей по фильтрам
 
-                query = self._apply_eager_loading(query) # загрузка и сортировка только для финальной выборки
-                query = self._apply_ordering(query, search)
+                query = self._apply_eager_loading(query) # загрузка связанных данных новостей (сразу источник + подразделение)
+                query = query.order_by(NewsDB.published_at.desc()) #сортировка по дате
 
-                db_news = query.offset((page - 1) * page_size).limit(page_size).all()
+                db_news = query.offset((page - 1) * page_size).limit(page_size).all() #n первых новостей по фильтрам и поиску
 
                 context = self._build_context(
                     request, db_news, page, page_size, total,
                     source_id, structure_id, date_from, date_to, date_mode, search
                 )
 
-                if request.headers.get("HX-Request"):
-                    return self.templates.TemplateResponse("components/news_list.html", context)
-
                 context["structures"] = self.structure_controller.get_structure_tree()
                 context["sources"] = self.source_controller.get_all_sources()
-                return self.templates.TemplateResponse("index.html", context)
+
+                status_code = 200
+                if not db_news and page > 1: # если страница пагинации не существует
+                    status_code = 404
+
+                if request.headers.get("HX-Request"): #запрос от htmx
+                    return self.templates.TemplateResponse("components/news_list.html",context,status_code=status_code)
+
+                return self.templates.TemplateResponse("index.html",context,status_code=status_code)
             finally:
                 session.close()
 
@@ -67,26 +71,29 @@ class NewsPageController:
             session = self.db.get_session()
             try:
                 news = session.get(NewsDB, news_id)
-                if news and news.links:
+                if not news: #если новости не существует по id
+                    return self.templates.TemplateResponse(
+                        "components/news_page.html",{"request": request, "news": None, "back": back, "hide_search": True}, status_code=404)
+
+                if news.links:
                     news.text = self.inject_links_into_text(news.text, news.links)
                 return self.templates.TemplateResponse(
                     "components/news_page.html",
-                    {"request": request, "news": news, "back": back, "hide_search": True}
-                )
+                    {"request": request, "news": news, "back": back, "hide_search": True})
             finally:
                 session.close()
 
     def _apply_eager_loading(self, query):
         return query.options(
-            joinedload(NewsDB.source),
-            selectinload(NewsDB.structures).joinedload(NewsStructureDB.structure)
+            joinedload(NewsDB.source), #1 к М
+            selectinload(NewsDB.structures).joinedload(NewsStructureDB.structure) #М к М
         )
 
     def _build_news_query(self, session, search, source_id, structure_id, date_from, date_to, date_mode):
         query = session.query(NewsDB)
 
         if search and search.strip():
-            words = search.strip().split()[:5]
+            words = search.strip().split()
             corrected_words = []
 
             for w in words:
@@ -94,30 +101,28 @@ class NewsPageController:
                     text("SELECT word FROM news_dictionary ORDER BY word <-> :w LIMIT 1"),
                     {"w": w}
                 )
-                suggested = result.scalar()
+                suggested = result.scalar() #ближайший найденный стемминг
                 corrected_words.append(suggested if suggested else w)
 
-            ts_query_str = " ".join(corrected_words)
+            ts_query_str = " ".join(corrected_words) #формирование поискового запроса
 
-            query = query.filter(#фильтр по вектору
+            query = query.filter( # поиск полнотекстовый
                 NewsDB.search_vector.op('@@')(func.plainto_tsquery('russian', ts_query_str))
             )
 
         if source_id: # фильтр по источникам
             query = query.filter(NewsDB.source_id.in_(source_id))
 
-        if structure_id:
+        if structure_id: #фильтр по структурам
             all_ids = set()
             for sid in structure_id:
                 all_ids.update(self.structure_controller.get_all_child_ids(session, sid))
-            query = query.filter(
-                NewsDB.structures.any(NewsStructureDB.structure_id.in_(all_ids))
-            )
+            query = query.filter(NewsDB.structures.any(NewsStructureDB.structure_id.in_(all_ids)))
 
-        query = self._filter_by_date(query, date_from, date_to, date_mode)
+        query = self._filter_by_date(query, date_from, date_to, date_mode)#фильтр по датам
         return query
 
-    def _filter_by_date(self, query, date_from, date_to, date_mode):
+    def _filter_by_date(self, query, date_from, date_to, date_mode): #сортировка по диапазону дат
         if not date_from:
             return query
         try:
@@ -132,11 +137,6 @@ class NewsPageController:
         except (ValueError, TypeError):
             pass
         return query
-
-    def _apply_ordering(self, query, search):
-        if search and search.strip():
-            return query.order_by(NewsDB.published_at.desc())
-        return query.order_by(NewsDB.published_at.desc())
 
     def _build_context(self, request, db_news, page, page_size, total,
                         source_id, structure_id, date_from, date_to, date_mode, search):
@@ -163,7 +163,7 @@ class NewsPageController:
         start = max(1, end - window + 1)
         return list(range(start, end + 1))
 
-    def inject_links_into_text(self, text: str, links: dict) -> str:
+    def inject_links_into_text(self, text: str, links: dict) -> str: #восстановление гиперссылок
         if not text or not links:
             return text  # возвращаем исходный текст, если данных нет
 
@@ -177,9 +177,8 @@ class NewsPageController:
                 else:
                     parts = ctx
 
-                # распаковка вложенных списков
                 while isinstance(parts, (list, tuple)) and len(parts) == 1 and isinstance(parts[0], (list, tuple)):
-                    parts = parts[0]
+                    parts = parts[0] # распаковка вложенных списков
 
                 if not isinstance(parts, (list, tuple)) or len(parts) < 1:
                     continue  # список пуст или имеет неверный формат
@@ -196,17 +195,15 @@ class NewsPageController:
                 re_after = re.escape(after)
 
                 link_html = f'<a href="{url}" target="_blank" class="text-primary underline">{anchor}</a>'
-
                 pattern = fr"({re_before})\s*({re_anchor})\s*({re_after})"
 
-                if before or after:
+                if before or after: #поиск по символам до и после гиперссылки
                     if re.search(pattern, text):
                         text = re.sub(pattern, rf"\1 {link_html} \3", text, count=1)
                     elif anchor in text:
                         text = text.replace(anchor, link_html, 1)
                 else:
                     text = text.replace(anchor, link_html, 1)
-
             except Exception as e:
                 self._logger.error(f"Ошибка вставки ссылки {url}: {e}")
                 continue

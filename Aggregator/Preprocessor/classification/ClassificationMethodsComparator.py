@@ -22,8 +22,8 @@ class ClassificationMethodsComparator:
 
         self.methods = {
             'keyword': KeywordClassifier(logger),
-            'tfidf_lr': TfIdfLgClassifier(logger),
-            'naive_bayes': NaiveBayesClassifier(logger)
+            #'tfidf_lr': TfIdfLgClassifier(logger),
+            #'naive_bayes': NaiveBayesClassifier(logger)
         }
 
     def split_data(self):
@@ -110,6 +110,7 @@ class ClassificationMethodsComparator:
                 self._logger.info(f"Тестирование словаря размера: {size}")
                 clf = clf_name(logger=self._logger, **{param_name: size})
                 clf.train(train_df['text_processed'].tolist(), train_df[self._target_col].tolist(), True)
+
                 df_val = clf.predict(val_df, True)
 
                 if thresholds_include:
