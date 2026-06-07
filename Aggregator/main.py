@@ -6,9 +6,7 @@ from starlette.templating import Jinja2Templates
 
 from Aggregator.Controllers.NewsPageController import NewsPageController
 from Aggregator.DataBase.db.DbConnection import DBConnection
-from Aggregator.Preprocessor.deduplication.DuplicateMethodsComparator import DuplicateMethodComparator
 
-'''
 db_connection = DBConnection()
 templates = Jinja2Templates(directory="Web/templates")
 
@@ -34,7 +32,3 @@ async def root():
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
-'''
-
-d = DuplicateMethodComparator()
-d.compare()
