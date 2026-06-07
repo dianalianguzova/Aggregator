@@ -29,7 +29,7 @@ class DuplicateMethodComparator:
     def compare(self, posts: list['Post']): #сравнение методов всех
         try:
             for method_name, detector in self.methods.items():
-                if method_name in ['tfidf']: #если tf-idf не обучена
+                if method_name in ['tfidf']: #если tf-idf словари не получены, то получаем на основе текстов датасета
                     detector.train(posts)
 
             for method_name, detector in self.methods.items():
@@ -38,7 +38,7 @@ class DuplicateMethodComparator:
                     self._process_single_method(method_name, detector)
                 except Exception as e:
                     self._logger.error(f"Ошибка работы метода {method_name}: {e}")
-            self._logger.info(f"Сравнение методов оценки схожести пар текстов завершено. Результаты в {self.output_dir}")
+            self._logger.info(f"Сравнение методов оценки схожести пар текстов завершено. Результаты в {self._output_dir}")
         except Exception as e:
             self._logger.error(f"Ошибка сравнения методов: {e}")
             return None
@@ -70,7 +70,6 @@ class DuplicateMethodComparator:
                 settings.tfidf.DEDUPLICATION_MODEL_PATH = (f"Preprocessor/deduplication/models/tfidf_{size}.model")
 
                 detector = TFIDFDetector(self._logger, max_features=size)
-                detector._is_trained = False
                 detector.train(posts)
 
                 settings.tfidf.DEDUPLICATION_MODEL_PATH = original_path
@@ -103,7 +102,6 @@ class DuplicateMethodComparator:
                 encoding='utf-8-sig'
             )
             return summary_df
-
         except Exception as e:
             self._logger.error(f"Ошибка тестирования TF-IDF: {e}")
             return None

@@ -22,8 +22,8 @@ class ClassificationMethodsComparator:
 
         self.methods = {
             'keyword': KeywordClassifier(logger),
-            #'tfidf_lr': TfIdfLgClassifier(logger),
-            #'naive_bayes': NaiveBayesClassifier(logger)
+            'tfidf_lr': TfIdfLgClassifier(logger),
+            'naive_bayes': NaiveBayesClassifier(logger)
         }
 
     def split_data(self):
@@ -61,15 +61,12 @@ class ClassificationMethodsComparator:
         prob_col = f'prob_{clf.name}'
         pred_col = f'pred_{name}'
 
-        if prob_col not in df_result.columns:
-            self._logger.error(f"Колонка {prob_col} не создана")
-            df_result[prob_col] = 0.35 #заглушка
-
         metrics = clf.evaluate(df_result, threshold) #расчет метрик и их сохранение
         pd.DataFrame([metrics]).to_csv(f"{self._output_dir}/{name}_test_metrics.csv", index=False, encoding='utf-8-sig')
 
         df_result[pred_col] = (df_result[prob_col] >= threshold).astype(int)
         df_result.to_csv(f"{self._output_dir}/{name}_test_predictions.csv", index=False, encoding='utf-8-sig') #разметка методом и ее сохранение
+
 
     def _evaluate_on_test_keyword(self, name, clf, test_df): #оценка словарного метода на тесте при лучших параметрах
         df_result = clf.predict(test_df)
