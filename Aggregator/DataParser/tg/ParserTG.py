@@ -1,6 +1,7 @@
 import asyncio
 from datetime import timedelta, datetime
 from telethon import TelegramClient
+from telethon.sessions import StringSession
 
 from Aggregator.Logger.Logger import get_logger
 from Aggregator.Model.Post import Post
@@ -13,7 +14,7 @@ class ParserTG(Parser):
     def __init__(self):
         super().__init__(settings.tg.SOURCE)
         self._channels = settings.tg.CHANNELS
-        self._client = TelegramClient(settings.tg.SESSION_NAME, settings.tg.api_id, settings.tg.api_hash)
+        self._client = TelegramClient(StringSession(settings.tg.session), settings.tg.api_id, settings.tg.api_hash)
         self._period_reached = False
         self._logger = get_logger(self.__class__.__name__)
         self._tg_handler = TGHandler(self._logger)

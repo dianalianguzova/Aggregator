@@ -114,22 +114,4 @@ class ParserVK(Parser):
             self._logger.warning(f"Ошибка парсинга поста: {e}")
             return None
 
-    def extract_media(self, attachments: list[dict[str, any]]) -> str | None:
-        try:
-            for attachment in attachments:
-                if attachment.get('type') == 'photo':
-                    photo = attachment['photo']
-                    sizes = photo.get('sizes', [])
-
-                    quality_types = ['w', 'z', 'y', 'x', 'm']  # разрешения фото в вк от лучшего к худшему
-                    for s in sizes:
-                        if s['type'] in quality_types[:3]:
-                            return s['url']  # первое качественное фото c разрешением выше 1080
-                    return sizes[0]['url']  # если не нашлось качественного, то берем первое
-                elif attachment.get('type') == 'video':
-                    continue
-            return None
-        except Exception as e:
-            self._logger.error(f"Ошибка извлечения медиа из ВК: {e}")
-            return None
 

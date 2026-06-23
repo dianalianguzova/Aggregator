@@ -14,10 +14,10 @@ class DBConfig(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_PATH,env_file_encoding="utf-8",extra="ignore")
 
 class ParserCommonConfig:
-    NEWS_RAW_FILE: str = "Datafiles/dataset_raw.csv"
+    NEWS_RAW_FILE: str = "Aggregator/Datafiles/dataset_raw.csv"
     DATE_FORMAT: str = "%d/%m/%Y %H:%M"
     LAST_DATE: str = "31/12/2022 23:59"
-    MEDIA_BASE_PATH: str = "DataParser/media/"
+    MEDIA_BASE_PATH: str = "Aggregator/DataParser/media/"
     CONTEXT_COUNT: int = 50 # количество символов до и после ссылки
     SHORT_TEXT_COUNT: int = 5 # порог слов для определения новости
 
@@ -53,6 +53,7 @@ class TGConfig(BaseSettings):
     api_id: int = Field(alias="tg_api_id")
     api_hash: str = Field(alias="tg_api_hash")
     token: str = Field(alias="tg_token")
+    session: str = Field(alias="tg_session")
     SOURCE: str = "TG"
     CHANNELS: list[str] = ['vyatsunews']
     SESSION_NAME: str = 'news_parser'
@@ -60,7 +61,7 @@ class TGConfig(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_PATH,env_file_encoding="utf-8",extra="ignore")
 
 class MLCommonConfig:
-    DATASET_PATH: str = "Datafiles/dataset_raw.csv"
+    DATASET_PATH: str = "Aggregator/Datafiles/dataset_raw.csv"
     THRESHOLDS: list[float] = [
         0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5,
         0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95
@@ -68,8 +69,8 @@ class MLCommonConfig:
     VOCAB_SIZES: list[int] = [1000, 3000, 5000, 8000, 10000, 12000]
 
 class DeduplicationConfig:
-    DATA_FILE_PATH: str = "Datafiles/deduplication/test_pairs_400.csv"
-    SIM_OUTPUT_FILE_PATH: str = "Datafiles/deduplication"
+    DATA_FILE_PATH: str = "Aggregator/Datafiles/deduplication/test_pairs_400.csv"
+    SIM_OUTPUT_FILE_PATH: str = "Aggregator/Datafiles/deduplication"
     MAX_DAY_DIFF: int = 7
     PRIORITY: dict[str, int] = {
         'WEB': 1, 'VK_OFFICIAL': 2, 'VK_SNO': 3, 'VK_APPLICANTS': 4, 'TG': 5
@@ -78,9 +79,9 @@ class DeduplicationConfig:
     TFIDF_FEATURES: int = 10000
 
 class ClassificationConfig:
-    DATA_FILE_PATH: str = "Datafiles/dataset_cleaned_marked.csv"
-    RESULTS_OUTPUT_PATH: str = "Datafiles/classification/"
-    KEYWORDS_DICTS_PATH: str = "Preprocessor/models/keywords_sets.pkl"
+    DATA_FILE_PATH: str = "Aggregator/Datafiles/dataset_cleaned_marked.csv"
+    RESULTS_OUTPUT_PATH: str = "Aggregator/Datafiles/classification/"
+    KEYWORDS_DICTS_PATH: str = "Aggregator/Preprocessor/models/keywords_sets.pkl"
     KEYWORDS_TOPN: int = 3000
     TFIDF_THRESHOLD: float = 0.35
     TFIDF_FEATURES: int = 8000
@@ -91,14 +92,14 @@ class TFIDFConfig:
     MIN_DF: int = 1 # слово должно быть минимум в 1 документе
     MAX_DF: float = 0.8 # слово не более чем в 80% документов
     NGRAM_RANGE: tuple[int, int] = (1, 2)
-    DEDUPLICATION_MODEL_PATH: str = "Preprocessor/models/tfidf.model"
-    CLASSIFICATION_MODEL_PATH: str = "Preprocessor/models/tfidf_lg.model"
+    DEDUPLICATION_MODEL_PATH: str = "Aggregator/Preprocessor/models/tfidf.model"
+    CLASSIFICATION_MODEL_PATH: str = "Aggregator/Preprocessor/models/tfidf_lg.model"
 
 class CountNBConfig:
     MIN_DF: int = 1 # минимум документов
     MAX_DF: float = 0.8 # максимум документов
     NGRAM_RANGE: tuple[int, int] = (1, 2)
-    MODEL_PATH: str = "Preprocessor/models/count_nb.model"
+    MODEL_PATH: str = "Aggregator/Preprocessor/models/count_nb.model"
     ALPHA: float = 1.0
 
 class StructureConfig:
