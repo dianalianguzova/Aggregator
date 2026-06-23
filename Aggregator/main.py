@@ -8,11 +8,11 @@ from Aggregator.Controllers.NewsPageController import NewsPageController
 from Aggregator.DataBase.db.DbConnection import DBConnection
 
 db_connection = DBConnection()
-templates = Jinja2Templates(directory="Web/templates")
+templates = Jinja2Templates(directory="Aggregator/Web/templates")
 
 app = FastAPI()
 #app.mount("/media", StaticFiles(directory="DataParser/media"), name="media")  # медиа для тг постов
-app.mount("/static", StaticFiles(directory="Web/static"), name="static") # лого
+app.mount("/static", StaticFiles(directory="Aggregator/Web/static"), name="static") # лого
 
 app.add_middleware(
     CORSMiddleware,
