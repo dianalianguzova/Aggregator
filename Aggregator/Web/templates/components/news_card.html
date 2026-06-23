@@ -6,11 +6,7 @@
         <div class="card-body flex flex-row gap-2 md:gap-4 p-0 h-full">
 
             <div class="w-[90px] h-[90px] sm:w-28 sm:h-full md:w-36 flex-shrink-0 m-2 sm:m-0">
-                {% if item.source and item.source.code == 'TG' %}
-                    {% set img = '/media/' ~ item.image_path %}
-                {% else %}
-                    {% set img = item.image %}
-                {% endif %}
+                {% set img = item.image %}
 
                 <img src="{{ img if img and img|lower != 'nan' else '/static/plug.jpg' }}"
                      class="w-full h-full object-cover rounded-xl sm:rounded-l-2xl"
