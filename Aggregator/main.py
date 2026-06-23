@@ -8,6 +8,7 @@ from Aggregator.Controllers.NewsPageController import NewsPageController
 from Aggregator.DataBase.db.DbConnection import DBConnection
 
 db_connection = DBConnection()
+
 templates = Jinja2Templates(directory="Aggregator/Web/templates")
 
 app = FastAPI()
