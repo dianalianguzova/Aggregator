@@ -20,15 +20,11 @@ class WebHandler:
         try:
             preview = self._soup.find("div", class_="preview")
             preview_text = preview.text.strip() if preview else ""
-
             img_url = self._extract_main_img()
-
             content_elem = self._soup.find("div", class_="content")
             text, links = self._extract_all_content(content_elem) if content_elem else ("", {})
-
             all_text = f"{preview_text}\n{text}".strip()
             return all_text, links, img_url
-
         except Exception as e:
             self._logger.error(f"Ошибка парсинга контенте: {e}")
             raise
@@ -88,15 +84,13 @@ class WebHandler:
                         end_pos = start_pos + len(link_text) #добавление текста перед гиперссылкой и после
                         chars_before = context_text[max(0, start_pos - sym_count):start_pos]
                         chars_after = context_text[end_pos:min(len(context_text), end_pos + sym_count)]
-
                         if url not in links_dict:
                             links_dict[url] = []
                         links_dict[url].append([link_text, chars_before.strip(), chars_after.strip()])
-
         except Exception as e:
             self._logger.error(f"Ошибка извлечения гиперссылки: {e}")
 
-    def _extract_list_text(self, list_element: Tag, tag_name: str) -> str:
+    def _extract_list_text(self, list_element: Tag, tag_name: str) -> str: # парсинг списка
         try:
             items = list_element.find_all("li", recursive=False)
             if not items:
@@ -118,7 +112,7 @@ class WebHandler:
                     for nested_item in nested_items:
                         nested_item_text = ' '.join(nested_item.stripped_strings)
                         list_text.append(f"  - {nested_item_text}")
-                else:# обычный элемент списка
+                else: # обычный элемент списка
                     if tag_name == 'ol':
                         list_text.append(f"{i}. {item_text}")
                     else:

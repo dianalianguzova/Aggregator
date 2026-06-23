@@ -3,7 +3,6 @@ from typing import Optional, List
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import  relationship
-
 from Aggregator.DataBase.db.Base import Base
 
 class StructureDB(Base): #модель для работы с БД
@@ -13,11 +12,8 @@ class StructureDB(Base): #модель для работы с БД
     type = Column(String(50), nullable=False)
     abbreviation = Column(String(100))
     parent_id = Column(Integer, ForeignKey('structure.id'))
-
-    #рекурсивная связь
-    parent = relationship('StructureDB', remote_side=[id], backref='children')
+    parent = relationship('StructureDB', remote_side=[id], backref='children')# рекурсивная связь
     news = relationship("NewsStructureDB", back_populates="structure", cascade="all, delete-orphan")
-
 
 @dataclass
 class Structure:
@@ -57,11 +53,10 @@ class ExtractedStructure:
             self.faculty = []
         if self.department is None:
             self.department = []
-
-    def has_structures(self) -> bool: #проверка на наличие структур
+    def has_structures(self) -> bool: # проверка на наличие структур
         return bool(self.institute or self.faculty or self.department)
 
-class StructureSchema(BaseModel): #pydantic-схема модели структурного подразделения
+class StructureSchema(BaseModel): # pydantic-схема модели структурного подразделения
     id: int
     name: str
     type: str
@@ -69,12 +64,11 @@ class StructureSchema(BaseModel): #pydantic-схема модели структ
     parent_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
-class StructureTreeSchema(BaseModel): #вложенный список структур
+class StructureTreeSchema(BaseModel): # вложенный список структур
     id: int
     name: str
     type: str
     abbreviation: Optional[str] = None
     parent_id: Optional[int] = None
     children: List["StructureTreeSchema"] = []# рекурсивная связь
-
     model_config = ConfigDict(from_attributes=True)

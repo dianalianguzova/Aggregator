@@ -29,7 +29,6 @@ class TFIDFDetector(BaseDuplicateDetector):
             for post in posts:
                 text = post.text_processed
                 texts.append(text)
-
             self.vectorizer = TfidfVectorizer(
                 max_features=self.max_features,
                 min_df=settings.tfidf.MIN_DF,

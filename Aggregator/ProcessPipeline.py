@@ -1,8 +1,6 @@
 import time
 from datetime import datetime, timezone, timedelta
-
 from sqlalchemy import text
-
 from Aggregator.Controllers.NewsIngestionService import NewsIngestionService
 from Aggregator.Controllers.SourceController import SourceController
 from Aggregator.Controllers.StructureController import StructureController
@@ -68,7 +66,7 @@ class ProcessPipeline:
     def _refresh_search_dictionary(self):
         session = self._db.get_session()
         try:
-            session.execute(text("REFRESH MATERIALIZED VIEW news_dictionary"))
+            session.execute(text("REFRESH MATERIALIZED VIEW news_dictionary")) # обновление словаря стеммингов в бд
             session.commit()
             self._logger.info("Словарь терминов обновлен")
         except Exception as e:
@@ -116,6 +114,5 @@ class ProcessPipeline:
 
             except Exception as e:
                 self._logger.error(f"Ошибка при парсинге {source.code}: {e}")
-
         self._logger.info(f"Парсинг завершен. Всего новых постов собрано: {len(posts)}")
         return posts

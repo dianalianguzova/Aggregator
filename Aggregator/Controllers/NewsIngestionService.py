@@ -1,7 +1,5 @@
 from datetime import timedelta, datetime, timezone
-
 from sqlalchemy.orm import joinedload
-
 from Aggregator.DataBase.db.DbConnection import DBConnection
 from Aggregator.Logger.Logger import get_logger
 from Aggregator.Model.News import NewsDB
@@ -19,15 +17,15 @@ class NewsIngestionService: #для работы с сохранением и и
     def add_news_from_posts(self, posts: list[Post]) -> bool:  # сохранение постов в базу
         session = self.db.get_session()
         try:
-            structures_cache = {s.name.lower(): s for s in self.structure_controller.get_all_structures()}  # кэш структур
-            sources = {s.code: s.id for s in session.query(SourceDB).all()}  # получение справочника источников
+            structures_cache = {s.name.lower(): s for s in self.structure_controller.get_all_structures()}  # кэш подразделений
+            sources = {s.code: s.id for s in session.query(SourceDB).all()}  # получение источников
 
-            urls = [p.url for p in posts]  # сбор всех ссылок из пачки
-            existing_urls = {u[0] for u in session.query(NewsDB.url).filter(NewsDB.url.in_(urls)).all()}  # поиск дубликатов в бд
+            urls = [p.url for p in posts]  # все ссылки из пачки
+            existing_urls = {u[0] for u in session.query(NewsDB.url).filter(NewsDB.url.in_(urls)).all()}  # поиск дубликатов в бд по url
 
-            added_count = 0  # счетчик добавленных новостей
+            added_count = 0
             for post in posts:
-                if post.is_news != 1 or post.url in existing_urls:  # фильтрация не-новостей и дублей
+                if post.is_news != 1 or post.url in existing_urls:  # фильтрация шума и дублей по url
                     continue
 
                 source_id = sources.get(post.source)  # поиск id источника
@@ -36,23 +34,22 @@ class NewsIngestionService: #для работы с сохранением и и
                     continue
 
                 news = NewsDB.from_post(post, source_id)  # конвертация во внутреннюю модель
-                session.add(news)  # добавление в сессию
+                session.add(news)
                 session.flush()  # получение id новости без коммита
-                added_count += 1  # инкремент счетчика
+                added_count += 1
 
-                found_names = set()  # сет для уникальных имен структур
+                found_names = set()  # уникальные имена структурных подразделений
                 if post.institute: found_names.update(n.lower() for n in post.institute)  # сбор институтов
                 if post.faculty: found_names.update(n.lower() for n in post.faculty)  # сбор факультетов
                 if post.department: found_names.update(n.lower() for n in post.department)  # сбор кафедр
 
                 for name in found_names:
-                    struct = structures_cache.get(name)  # поиск структуры в кеше
+                    struct = structures_cache.get(name)  # поиск подразделения в кеше
                     if struct:
-                        news_struct = NewsStructureDB(news_id=news.id, structure_id=struct.id)  # связь новости со структурой
-                        session.add(news_struct)  # сохранение связи
-
+                        news_struct = NewsStructureDB(news_id=news.id, structure_id=struct.id)  # связь новости с подразделением
+                        session.add(news_struct)
             session.commit()
-            self._logger.info(f"Успешно сохранено новых новостей: {added_count}")  # лог успеха
+            self._logger.info(f"Успешно сохранено новых новостей: {added_count}")
             return True
         except Exception as e:
             session.rollback()
@@ -64,25 +61,20 @@ class NewsIngestionService: #для работы с сохранением и и
     def get_week_posts_for_dedup(self, days: int = 7) -> list[Post]:  # получение данных для проверки дублей
         session = self.db.get_session()
         try:
-            threshold = datetime.now(timezone.utc) - timedelta(days=days)  # расчет временной границы
+            threshold = datetime.now(timezone.utc) - timedelta(days=days)  # неделя
             db_news = session.query(NewsDB).options(joinedload(NewsDB.source)) \
                 .filter(NewsDB.published_at >= threshold).all()  # загрузка новостей с источниками
 
             results = []
             for news in db_news:
                 p = Post(
-                    id=news.id,
-                    title=news.title,
-                    text=news.text,
+                    id=news.id, title=news.title, text=news.text,
                     date=news.published_at.strftime(Settings.common.DATE_FORMAT),
                     source=news.source.code if news.source else str(news.source_id),
-                    url=news.url,
-                    image=news.image or '',
-                    image_path=news.image_path or '',
+                    url=news.url, image=news.image or '', image_path=news.image_path or '',
                     links=news.links or {}
                 )
                 results.append(p)
-
             self._logger.debug(f"Из БД извлечено {len(results)} постов для дедупликации")
             return results
         except Exception as e:

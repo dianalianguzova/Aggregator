@@ -1,6 +1,5 @@
 from typing import Set, Dict, Optional
 import re
-
 from Aggregator.Controllers.StructureController import StructureController
 from Aggregator.DataBase.db.DbConnection import DBConnection
 from Aggregator.Logger.Logger import get_logger
@@ -86,7 +85,6 @@ class StructureExtractor:
             self._logger.error(f"Ошибка загрузки структурных подразделений: {e}")
             self._loaded_names = set()
 
-
     def _extract_from_post(self, post: Post) -> ExtractedStructure:
         text = post.text_processed
         if not text or not text.strip():
@@ -102,7 +100,6 @@ class StructureExtractor:
         except Exception as e:
             self._logger.error(f"Ошибка извлечения подразделения из поста {post.url}: {e}")
             return ExtractedStructure(url=post.url)
-
 
     def _find_structures_in_text(self, text: str) -> list[dict]:
         if not text or not self._combined_pattern:
@@ -120,7 +117,6 @@ class StructureExtractor:
                         seen_ids.add(struct_id)
                         found_structures.append(struct_info)
         return found_structures
-
 
     def _build_search_terms(self, structure) -> list[str]:
         terms = []
@@ -146,13 +142,11 @@ class StructureExtractor:
         pattern_string = r'\b(?:' + '|'.join(map(re.escape, sorted_terms)) + r')\b'
         self._combined_pattern = re.compile(pattern_string, re.IGNORECASE)
 
-
     def _rebuild_hierarchy(self, found_structures: list[dict]) -> ExtractedStructure:
         levels = self._structure_levels
         institutes = set()
         faculties = set()
         departments = set()
-
         for struct in found_structures:
             self._add_to_level(struct, levels, institutes, faculties, departments)
         for struct in found_structures:
@@ -173,9 +167,8 @@ class StructureExtractor:
         elif type_key in levels['third_level']:
             departments.add(name)
 
-    #поднятие вверх по иерархии
     def _traverse_parents(self, parent_id: int, levels: dict, institutes: set, faculties: set,departments: set) -> None:
-        current_id = parent_id
+        current_id = parent_id # поднятие вверх по иерархии
         while current_id:
             parent = self._hierarchy_cache.get(current_id)
             if not parent:

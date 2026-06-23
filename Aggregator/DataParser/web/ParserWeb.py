@@ -38,7 +38,6 @@ class ParserWeb(Parser):
                 response = self._session.get(curr_url)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, 'html.parser')  # парсинг html
-
                 news_links = soup.select("a.item[href]")  # селектор для ссылок на новости
                 news_urls = [settings.web.BASE_URL + link['href'] for link in news_links if link['href']]
 
@@ -75,8 +74,6 @@ class ParserWeb(Parser):
 
             title = web_handler.parse_title()
             text, links, image_url = web_handler.parse_content() # извлечение текста, ссылок и изображения
-           # image_path = self._media_manager.generate_image_filename(date, ParserConfig.WebConfig.SOURCE) if image_url else ''
-           # self._media_manager.save_media(news_url, image_url, image_path)
 
             post = Post(title=title, text=text, date=date,
                         source=settings.web.SOURCE, url=news_url,

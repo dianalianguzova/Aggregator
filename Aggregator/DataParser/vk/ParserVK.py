@@ -53,12 +53,10 @@ class ParserVK(Parser):
                 if response.status_code != 200:
                     self._logger.error(f"Код HTTP {response.status_code} при парсинге {group}: {response.text}")
                     break
-
                 data = response.json()
                 if 'response' not in data:
                     self._logger.warning(f"Нет данных в ответе ВК для {group}: {data}")
                     break
-
                 items = data['response']['items']
                 if not items:
                     break
@@ -69,7 +67,6 @@ class ParserVK(Parser):
                     parsed_post = self._parse_news_item(post, source)
                     if parsed_post:
                         posts.append(parsed_post)
-
                 self._offset += self._count
                 self._logger.info(f"Обработано {self._offset} постов из {group}")
                 time.sleep(settings.vk.REQUEST_DELAY)
@@ -77,14 +74,12 @@ class ParserVK(Parser):
             self._logger.error(f"Ошибка парсинга ВК группы {group}: {e}")
         return posts
 
-
     def _parse_news_item(self, post: dict[str, any], source: str) -> Post | None:
         try:
             if post.get('marked_as_ads') == 1: #пропуск рекламных постов
                 return None
 
             self._vk_handler = VKHandler(self._logger)
-
             post_date = datetime.fromtimestamp(post['date'])
             date = post_date.strftime(settings.common.DATE_FORMAT)
 
@@ -95,7 +90,7 @@ class ParserVK(Parser):
 
             full_text = post['text']
             text, links = self._vk_handler.extract_text_links(full_text)
-            if text is None and links is None: #не новостной текст
+            if text is None and links is None: # не новостной текст (нет текста)
                 return None
 
             first_break_index = text.find('\n')
@@ -107,13 +102,8 @@ class ParserVK(Parser):
                 text = text[first_break_index + 1:].strip()
 
             post_url = f"https://vk.com/wall{post['owner_id']}_{post['id']}"
-
             attachments = post['attachments'] #для поиска первого качественного фото для сохранения
             image_url = self._vk_handler.extract_media(attachments)
-
-            #image_path = self._media_manager.generate_image_filename(date, source) if image_url else ''
-            #self._media_manager.save_media(post_url, image_url, image_path)
-
             post = Post(title=title, text=text, date=date,
                         source=source,
                         url=post_url, image=image_url, image_path = '', links=links,

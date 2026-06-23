@@ -4,7 +4,6 @@ from Aggregator.ProcessPipeline import ProcessPipeline
 def main():
     logger = get_logger("Worker")
     logger.info("Фоновый процесс сбора новостей запущен")
-
     try:
         pipeline = ProcessPipeline(logger)
         pipeline.run(interval_minutes=60)

@@ -19,13 +19,10 @@ class TextCleaner:
                 title = post.title if isinstance(post.title, str) else ''
                 body = post.text if isinstance(post.text, str) else ''
                 text = f"{title} {body}".strip()
-
                 text = self._clean_text(text)
                 lemm_text = self.lemmatizate(text)
                 text_without_stop_words = self._remove_stopwords(lemm_text)
-
                 post.text_processed = text_without_stop_words
-
             except Exception as e:
                 self._logger.error(f"Ошибка обработки текста новости {post.url}: {e}")
                 post.text_processed = ''

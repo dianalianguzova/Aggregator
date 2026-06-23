@@ -1,9 +1,7 @@
 import pandas as pd
-
 from Aggregator.Logger.Logger import get_logger
 from Aggregator.Settings import settings
 from sklearn.model_selection import train_test_split
-
 from Aggregator.Preprocessor.classification.classifiers.KeywordClassifier import KeywordClassifier
 from Aggregator.Preprocessor.classification.classifiers.NaiveBayesClassifier import NaiveBayesClassifier
 from Aggregator.Preprocessor.classification.classifiers.TfIdfLgClassifier import TfIdfLgClassifier

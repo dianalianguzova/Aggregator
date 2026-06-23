@@ -1,5 +1,4 @@
 import pandas as pd
-
 from Aggregator.DataManager.CsvManager import CsvManager
 from Aggregator.Logger.Logger import get_logger
 from Aggregator.Model.Post import Post

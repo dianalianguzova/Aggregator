@@ -24,24 +24,17 @@ class NewsDB(Base):  #модель для работы с БД
     links = Column(JSON, default={})
     search_vector = Column(TSVECTOR, server_default=FetchedValue())
 
-    #связи
-    source = relationship("SourceDB", back_populates="news")
+    source = relationship("SourceDB", back_populates="news") # связи
     structures = relationship("NewsStructureDB", back_populates="news", cascade="all, delete-orphan")
-
 
     @classmethod
     def from_post(cls, post: Post, source_id: int): # преобразование из Post в ORM модель
         date_format = settings.common.DATE_FORMAT
         return cls(
-            title=post.title,
-            text=post.text,
+            title=post.title, text=post.text,
             published_at=datetime.strptime(post.date, date_format),
-            source_id=source_id,
-            url=post.url,
-            image=post.image,
-            image_path=post.image_path,
-            links=post.links
-        )
+            source_id=source_id,url=post.url,image=post.image,
+            image_path=post.image_path,links=post.links)
 
 class NewsSchema(BaseModel): #pydantic-схема модели новости
     id: int

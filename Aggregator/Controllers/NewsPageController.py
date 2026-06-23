@@ -1,11 +1,9 @@
 import ast
 import re
 from datetime import datetime
-
 from fastapi import APIRouter, Request, Query
 from sqlalchemy import func, text
 from sqlalchemy.orm import joinedload, selectinload
-
 from Aggregator.Controllers.SourceController import SourceController
 from Aggregator.Controllers.StructureController import StructureController
 from Aggregator.DataBase.db.DbConnection import DBConnection
@@ -39,12 +37,9 @@ class NewsPageController:
             session = self.db.get_session()
             try:
                 query = self._build_news_query(session, search, source_id, structure_id, date_from, date_to, date_mode)
-
                 total = query.with_entities(func.count(NewsDB.id)).scalar() #общее количество найденных новостей по фильтрам
-
                 query = self._apply_eager_loading(query) # загрузка связанных данных новостей (сразу источник + подразделение)
                 query = query.order_by(NewsDB.published_at.desc()) #сортировка по дате
-
                 db_news = query.offset((page - 1) * page_size).limit(page_size).all() #n первых новостей по фильтрам и поиску
 
                 context = self._build_context(
@@ -58,10 +53,8 @@ class NewsPageController:
                 status_code = 200
                 if not db_news and page > 1: # если страница пагинации не существует
                     status_code = 404
-
-                if request.headers.get("HX-Request"): #запрос от htmx
+                if request.headers.get("HX-Request"): #запрос от htmx (частичное обновление частей страницы)
                     return self.templates.TemplateResponse("components/news_list.html",context,status_code=status_code)
-
                 return self.templates.TemplateResponse("index.html",context,status_code=status_code)
             finally:
                 session.close()
@@ -76,39 +69,35 @@ class NewsPageController:
                         "components/news_page.html",{"request": request, "news": None, "back": back, "hide_search": True}, status_code=404)
 
                 if news.links:
-                    news.text = self.inject_links_into_text(news.text, news.links)
+                    news.text = self.inject_links_into_text(news.text, news.links) #восстановление гиперссылок
                 return self.templates.TemplateResponse(
                     "components/news_page.html",
                     {"request": request, "news": news, "back": back, "hide_search": True})
             finally:
                 session.close()
 
-    def _apply_eager_loading(self, query):
+    def _apply_eager_loading(self, query): #загрузка связанных с новостью источника и подразделений
         return query.options(
             joinedload(NewsDB.source), #1 к М
             selectinload(NewsDB.structures).joinedload(NewsStructureDB.structure) #М к М
         )
 
-    def _build_news_query(self, session, search, source_id, structure_id, date_from, date_to, date_mode):
+    def _build_news_query(self, session, search, source_id, structure_id, date_from, date_to, date_mode): #формирование запроса к бд
         query = session.query(NewsDB)
-
-        if search and search.strip():
+        if search and search.strip():# поиск по новостям
             words = search.strip().split()
             corrected_words = []
-
             for w in words:
                 result = session.execute(
                     text("SELECT word FROM news_dictionary ORDER BY word <-> :w LIMIT 1"),
                     {"w": w}
                 )
-                suggested = result.scalar() #ближайший найденный стемминг
+                suggested = result.scalar() # ближайший найденный стемминг
                 corrected_words.append(suggested if suggested else w)
 
-            ts_query_str = " ".join(corrected_words) #формирование поискового запроса
-
+            ts_query_str = " ".join(corrected_words) # формирование поискового запроса
             query = query.filter( # поиск полнотекстовый
-                NewsDB.search_vector.op('@@')(func.plainto_tsquery('russian', ts_query_str))
-            )
+                NewsDB.search_vector.op('@@')(func.plainto_tsquery('russian', ts_query_str)))
 
         if source_id: # фильтр по источникам
             query = query.filter(NewsDB.source_id.in_(source_id))
@@ -179,24 +168,20 @@ class NewsPageController:
 
                 while isinstance(parts, (list, tuple)) and len(parts) == 1 and isinstance(parts[0], (list, tuple)):
                     parts = parts[0] # распаковка вложенных списков
-
                 if not isinstance(parts, (list, tuple)) or len(parts) < 1:
                     continue  # список пуст или имеет неверный формат
 
                 anchor = str(parts[0]).strip()
                 before = str(parts[1]).strip() if len(parts) > 1 and parts[1] else ''
                 after = str(parts[2]).strip() if len(parts) > 2 and parts[2] else ''
-
                 if not anchor:
                     continue  # без текста ссылки замена невозможна
 
                 re_before = re.escape(before)
                 re_anchor = re.escape(anchor)
                 re_after = re.escape(after)
-
                 link_html = f'<a href="{url}" target="_blank" class="text-primary underline">{anchor}</a>'
                 pattern = fr"({re_before})\s*({re_anchor})\s*({re_after})"
-
                 if before or after: #поиск по символам до и после гиперссылки
                     if re.search(pattern, text):
                         text = re.sub(pattern, rf"\1 {link_html} \3", text, count=1)

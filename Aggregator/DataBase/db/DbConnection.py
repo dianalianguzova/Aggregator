@@ -18,7 +18,6 @@ class DBConnection:
         try:
             db_url = f"postgresql://{self._username}:{self._password}@{self._host}:{self._port}/{self._database_name}"
             self._engine = create_engine(db_url)
-
             self._logger.info("Движок SQLAlchemy успешно создан")
         except Exception as e:
             self._logger.error(f"Ошибка создания движка SQLAlchemy: {e}")

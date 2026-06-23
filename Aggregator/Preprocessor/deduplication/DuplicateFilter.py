@@ -1,8 +1,6 @@
 import pandas as pd
-
 from Aggregator.Logger.Logger import get_logger
 from Aggregator.Settings import settings
-
 from Aggregator.DataManager.CsvManager import CsvManager
 from Aggregator.Model.Post import Post
 from Aggregator.Preprocessor.deduplication.detectors.TFIDFDetector import TFIDFDetector
@@ -21,7 +19,7 @@ class DuplicateFilter:
         self.posts = None
         self._is_ready = False
         self.priority = settings.dedup.PRIORITY
-        self.max_search_window = max_search_window  # макс. количество для сравнения
+        self.max_search_window = max_search_window
 
     def _parse_date(self, date_str):
         try:
@@ -48,14 +46,11 @@ class DuplicateFilter:
 
         for i in range(0, len(self.posts), batch_size):
             batch_end = min(i + batch_size, len(self.posts))
-
             for idx in range(i, batch_end):
                 is_duplicate = False
                 date_idx = self._parse_date(self.posts[idx].date)
-
                 if clean_indices:
                     search_indices = clean_indices[-self.max_search_window:] #последние n новостей для сравнения (они отсортированы по дате)
-
                     sims = cosine_similarity(self.vectors[idx:idx + 1],self.vectors[search_indices])[0]
 
                     # проходим по индексам в порядке убывания приоритета
@@ -93,9 +88,7 @@ class DuplicateFilter:
 
                 if not is_duplicate:
                     clean_indices.append(idx)
-
             self._logger.info(f"Обработано {batch_end}/{len(self.posts)}")
-
         clean_posts = [self.posts[i] for i in clean_indices]
         self.csv_manager.save(clean_posts, output_file) #сохранение уникальных новостей
 
@@ -110,7 +103,7 @@ class DuplicateFilter:
         if not self._is_ready:
             self.prepare()
 
-        comb = new_posts + db_posts #новые посты + старые из БД за последние 7 дней
+        comb = new_posts + db_posts # новые посты + старые из БД за последние 7 дней
         texts = [p.text_processed for p in comb]
         vectors = self.tfidf_detector.vectorize(texts)
 
@@ -126,7 +119,6 @@ class DuplicateFilter:
             compare_with = clean_new_indices + db_indices #сравнение с уже отобранными постами + постами из бд
             if compare_with:
                 sims = cosine_similarity(vectors[i:i + 1], vectors[compare_with])[0] #косинусное сходство текущего со всеми
-
                 for sim, j in zip(sims, compare_with):
                     if sim < self.threshold:
                         continue
@@ -150,7 +142,6 @@ class DuplicateFilter:
                         break
             if not is_duplicate:
                 clean_new_indices.append(i)
-
         result = [comb[idx] for idx in clean_new_indices]
         self._logger.info(f"Дедупликация: из {len(new_posts)} новых осталось {len(result)}")
         return result

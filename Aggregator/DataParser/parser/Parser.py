@@ -3,10 +3,9 @@ from typing import Optional
 from Aggregator.Logger.Logger import get_logger
 from Aggregator.Settings import settings
 
-
 class Parser:
     def __init__(self, source: str):
-        self._source = source #источник - сайт, вк или телеграм
+        self._source = source # источник
         self._data = []
         self._logger = get_logger(self.__class__.__name__)
         self.target_date: Optional[datetime] = None
@@ -15,7 +14,7 @@ class Parser:
     def data(self) -> list:
         return self._data.copy()
 
-    def _is_target_date_reached(self, date_str: str) -> bool:
+    def _is_target_date_reached(self, date_str: str) -> bool: #проверка, что парсер достиг определенной даты
         if not self.target_date:
             return False
         try:
@@ -26,3 +25,4 @@ class Parser:
         except Exception as e:
             self._logger.warning(f"Ошибка сравнения даты {date_str} с целевой датой {self.target_date}: {e}")
             return False
+

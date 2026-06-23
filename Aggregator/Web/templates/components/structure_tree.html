@@ -1,6 +1,5 @@
 {% for node in nodes %}
 <div class="{% if node.parent_id %}ml-4{% endif %}">
-
     {% set ns = namespace(has_selected=false) %}
     {% if node.id|string in (selected_structures or []) %}
         {% set ns.has_selected = true %}

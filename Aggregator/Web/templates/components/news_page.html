@@ -36,7 +36,6 @@
     </div>
 
     {% set img = None %}
-
     {% if news.source and news.source.code == 'TG' and news.image_path and news.image_path|lower not in ['nan', 'plug.jpg', 'plug.png'] %}
         {% set img = '/media/' ~ news.image_path %}
     {% elif news.image and news.image|lower != 'nan' %}

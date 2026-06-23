@@ -1,13 +1,7 @@
-from datetime import datetime, timezone, timedelta
-from http.client import HTTPException
-from typing import Optional
-
-from fastapi import APIRouter
-
+from datetime import timezone, timedelta
 from Aggregator.DataBase.db.DbConnection import DBConnection
 from Aggregator.Logger.Logger import get_logger
-from Aggregator.Model.Source import SourceDB, SourceSchema
-
+from Aggregator.Model.Source import SourceDB
 
 class SourceController:
     def __init__(self, db_connection: DBConnection, logger=None):

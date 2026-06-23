@@ -4,7 +4,7 @@ from telethon.tl.types import MessageMediaPhoto
 from Aggregator.Settings import settings
 from Aggregator.Logger.Logger import get_logger
 
-class MediaManager:
+class MediaManager: #работа с изображениями
     def __init__(self, logger = None):
         self._logger = logger or get_logger(self.__class__.__name__)
 

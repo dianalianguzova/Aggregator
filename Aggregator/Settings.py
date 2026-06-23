@@ -19,7 +19,7 @@ class ParserCommonConfig:
     LAST_DATE: str = "31/12/2022 23:59"
     MEDIA_BASE_PATH: str = "DataParser/media/"
     CONTEXT_COUNT: int = 50 # количество символов до и после ссылки
-    SHORT_TEXT_COUNT: int = 10 # порог слов для определения новости
+    SHORT_TEXT_COUNT: int = 5 # порог слов для определения новости
 
 class WebConfig:
     BASE_URL: str = "https://www.vyatsu.ru"

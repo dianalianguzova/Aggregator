@@ -1,7 +1,6 @@
 import os
 from dataclasses import asdict
 import pandas as pd
-
 from Aggregator.Logger.Logger import get_logger
 from Aggregator.Model.Post import Post
 from Aggregator.Settings import settings
@@ -15,7 +14,7 @@ class CsvManager:
     def _serialize_list(self, val): # вспомогательный метод для сохранения списков через ;
         return ';'.join(val) if isinstance(val, list) and val else ''
 
-    def save(self, data: list['Post'], filename: str = None) -> None:
+    def save(self, data: list['Post'], filename: str = None) -> None: #сохранение данных в csv
         try:
             filename = filename or self._raw_path
             if not data:
@@ -29,15 +28,14 @@ class CsvManager:
 
             if 'links' in df.columns:
                 df['links'] = df['links'].apply(
-                    lambda d: "; ".join(f"{k}: {v}" for k, v in d.items()) if isinstance(d, dict) and d else ''
-                )
+                    lambda d: "; ".join(f"{k}: {v}" for k, v in d.items()) if isinstance(d, dict) and d else '')
 
             df.to_csv(filename, index=False, encoding='utf-8-sig')
         except Exception as e:
             if self._logger: self._logger.error(f"Ошибка сохранения в Csv: {e}")
             raise
 
-    def load(self, filename: str = None) -> list['Post']:
+    def load(self, filename: str = None) -> list['Post']: #выгрузка данных из csv
         try:
             filename = filename or self._raw_path
             if not os.path.exists(filename):
@@ -64,12 +62,11 @@ class CsvManager:
 
             if 'links' in df.columns:
                 df['links'] = df['links'].apply(parse_links)
-
             for field in ['institute', 'faculty', 'department']:
                 if field in df.columns:
                     df[field] = df[field].fillna('').apply(parse_list_field)
 
-            posts = [Post(**row) for row in df.to_dict('records')]
+            posts = [Post(**row) for row in df.to_dict('records')] #возврат в виде списка
             if self._logger: self._logger.info(f"Загружено {len(posts)} записей из {filename}")
             return posts
         except Exception as e:
@@ -77,7 +74,7 @@ class CsvManager:
             raise
 
     def add_structures_to_dataset(self, extracted_structures: list['ExtractedStructure'], filename: str = None) -> None:
-        try:
+        try: #добавление структурных подразделений в датасет
             filename = filename or self._raw_path
             if not os.path.exists(filename): return
 
