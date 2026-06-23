@@ -12,7 +12,7 @@
                     {% set img = item.image %}
                 {% endif %}
 
-                <img src="{{ img if img and img|lower != 'nan' else '/media/plug.jpg' }}"
+                <img src="{{ img if img and img|lower != 'nan' else '/static/plug.jpg' }}"
                      class="w-full h-full object-cover rounded-xl sm:rounded-l-2xl"
                      loading="lazy"
                      decoding="async"
