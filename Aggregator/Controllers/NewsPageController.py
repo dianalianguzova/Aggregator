@@ -54,8 +54,18 @@ class NewsPageController:
                 if not db_news and page > 1: # если страница пагинации не существует
                     status_code = 404
                 if request.headers.get("HX-Request"): #запрос от htmx (частичное обновление частей страницы)
-                    return self.templates.TemplateResponse("components/news_list.html",context,status_code=status_code)
-                return self.templates.TemplateResponse("index.html",context,status_code=status_code)
+                    return self.templates.TemplateResponse(
+                        request=request,
+                        name="components/news_list.html",
+                        context=context,
+                        status_code=status_code
+                    )
+                return self.templates.TemplateResponse(
+                    request=request,
+                    name="index.html",
+                    context=context,
+                    status_code=status_code
+                )
             finally:
                 session.close()
 
@@ -66,13 +76,23 @@ class NewsPageController:
                 news = session.get(NewsDB, news_id)
                 if not news: #если новости не существует по id
                     return self.templates.TemplateResponse(
-                        "components/news_page.html",{"request": request, "news": None, "back": back, "hide_search": True}, status_code=404)
+                        "components/news_page.html",
+                        {"request": request, "news": None, "back": back, "hide_search": True},
+                        status_code=404
+                    )
 
                 if news.links:
                     news.text = self.inject_links_into_text(news.text, news.links) #восстановление гиперссылок
                 return self.templates.TemplateResponse(
-                    "components/news_page.html",
-                    {"request": request, "news": news, "back": back, "hide_search": True})
+                    request=request,
+                    name="components/news_page.html",
+                    context={
+                        "request": request,
+                        "news": news,
+                        "back": back,
+                        "hide_search": True
+                    }
+                )
             finally:
                 session.close()
 
