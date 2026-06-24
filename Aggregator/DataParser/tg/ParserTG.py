@@ -97,11 +97,10 @@ class ParserTG(Parser):
 
             post_url = f"https://t.me/{channel}/{message.id}"
 
-            image_path = self._media_manager.generate_image_filename(post_date, settings.tg.SOURCE)
-            await self._save_image(message, image_path)
+
             post = Post(title=title, text=text, date=post_date,
                         source=settings.tg.SOURCE, url=post_url,
-                        image='', image_path=image_path,
+                        image='', image_path='',
                         links=links, text_processed='',
                         institute=None, faculty=None, department=None)
             self._logger.info(f"Обработан пост: {post_url} Дата: {post_date}")
@@ -109,9 +108,4 @@ class ParserTG(Parser):
         except Exception as e:
             self._logger.warning(f"Ошибка парсинга TG поста: {e}")
             return None
-
-    async def _save_image(self, message, image_filename: str) -> None:
-        if hasattr(message, 'media') and message.media:
-            await self._media_manager.save_telegram_media(self._client, message, image_filename)
-
 

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 from Aggregator.Settings import settings
 from Aggregator.Logger.Logger import get_logger
@@ -26,6 +26,7 @@ class DBConnection:
     def get_session(self) -> Session: #создание сессии для работы с бд
         try:
             session = Session(bind=self._engine)
+            session.execute(text("SET TIME ZONE 'Europe/Moscow';"))
             self._logger.debug("Создана новая сессия БД")
             return session
         except Exception as e:
